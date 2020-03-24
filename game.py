@@ -232,6 +232,8 @@ class Game:
                     adjacent.add((i, j + 1))
                     adjacent.add((i - 1, j))
                     adjacent.add((i, j - 1))
+                    adjacent.add((i + 1, j - 1))
+                    adjacent.add((i - 1, j + 1))
                     adjacent.add((i + 1, j + 1))
                     adjacent.add((i - 1, j - 1))
 
@@ -245,5 +247,3 @@ class Game:
 
         return adjacent_valid
 
-    def get_troops_at(self, cursor):
-        return self._map_troops[cursor[0], cursor[1]]

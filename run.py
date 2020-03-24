@@ -64,22 +64,24 @@ def evaluate_fitness(player_move):
     fitness = 0
     my_tiles = game.get_tiles(game.get_player_id())
     my_adj_tiles = game.get_tiles_adj(game.get_player_id())
-    tiles = game.get_tile_count(game.get_player_id())
+    enemy_tiles = game.get_tiles(Game.RedPlayer if game.get_player_id() == Game.BluePlayer else Game.BluePlayer)
     move_type = player_move["move_type"]
     tile_A = player_move["tile_A"]
     tile_B = player_move["tile_B"]
     troops = player_move["troops"]
-    coord_group_A = set([coord for tile in my_tiles for coord in tile])
-    coord_group_B = set([coord for tile in my_tiles.union(my_adj_tiles) for coord in tile])
-    coord_group_C = set([coord for tile in my_adj_tiles for coord in tile])
-    can_produce = game.get_troop_count(game.get_player_id()) % 20 != 0
-    can_transport = tiles > 1
+    coord_my_tiles = set([coord for tile in my_tiles for coord in tile])
+    coord_comb_tiles = set([coord for tile in my_tiles.union(my_adj_tiles) for coord in tile])
+    coord_my_adj_tiles = set([coord for tile in my_adj_tiles for coord in tile])
+    player_troops = game.get_troop_count(game.get_player_id())
+    player_tiles = game.get_tile_count(game.get_player_id())
+    can_produce = player_troops % 20 != 0
+    can_transport = player_tiles > 1
 
     s_i, s_j = tile_A
     t_i, t_j = tile_B
 
     if (move_type == 0 and can_produce) or move_type == 1 or (move_type == 2 and can_transport):
-        # +8 fitness all
+        # +15 fitness all
 
         fitness += 1
 
@@ -89,43 +91,28 @@ def evaluate_fitness(player_move):
         if 0 <= s_j <= Game.MapHeight - 1:
             fitness += 1
 
-        if s_i in coord_group_A:
+        if s_i in coord_my_tiles:
             fitness += 1
 
-        if s_j in coord_group_A:
+        if s_j in coord_my_tiles:
             fitness += 1
 
-        if s_i in coord_group_B:
+        if t_i in coord_comb_tiles:
             fitness += 1
 
-        if s_j in coord_group_B:
-            fitness += 1
-
-        if tile_A in my_tiles:
-            fitness += 1
-
-    if move_type == 0 and can_produce:
-        # + 17 fitness all
-
-        if tile_A in my_tiles and game.get_map_troops()[s_i, s_j] < Game.TileTroopMax:
-            fitness += 1
-
-        if game.is_production_move_valid(tile_A):
-            fitness += 16
-
-    if move_type == 1 or (move_type == 2 and can_transport):
-        # + 8 fitness all
-
-        if t_i in coord_group_B:
-            fitness += 1
-
-        if t_j in coord_group_B:
+        if t_j in coord_comb_tiles:
             fitness += 1
 
         if 0 <= t_i <= Game.MapWidth - 1:
             fitness += 1
 
         if 0 <= t_j <= Game.MapHeight - 1:
+            fitness += 1
+
+        if tile_A in my_tiles:
+            fitness += 1
+
+        if tile_A not in enemy_tiles:
             fitness += 1
 
         if tile_A != tile_B:
@@ -140,28 +127,37 @@ def evaluate_fitness(player_move):
         if Game.TileTroopMin <= troops <= Game.TileTroopMax:
             fitness += 1
 
-    if move_type == 1:
-        # + 7 fitness all
+    if move_type == 0 and can_produce:
+        # + 8 fitness all
 
-        if t_i in coord_group_C:
+        if tile_A in my_tiles and game.get_map_troops()[s_i, s_j] < Game.TileTroopMax:
             fitness += 1
 
-        if t_j in coord_group_C:
+        if game.is_production_move_valid(tile_A):
+            fitness += 7
+
+    if move_type == 1:
+        # + 8 fitness all
+
+        if t_i in coord_my_adj_tiles:
+            fitness += 1
+
+        if t_j in coord_my_adj_tiles:
             fitness += 1
 
         if tile_B in my_adj_tiles:
             fitness += 1
 
         if game.is_attack_move_valid(tile_A, tile_B, troops):
-            fitness += 4
+            fitness += 5
 
     if move_type == 2 and can_transport:
-        # + 7 fitness all
+        # + 8 fitness all
 
-        if t_i in coord_group_A:
+        if t_i in coord_my_tiles:
             fitness += 1
 
-        if t_j in coord_group_A:
+        if t_j in coord_my_tiles:
             fitness += 1
 
         if tile_B in my_tiles:
@@ -171,6 +167,9 @@ def evaluate_fitness(player_move):
             fitness += 1
 
         if abs(s_j - t_j) <= 1:
+            fitness += 1
+
+        if tile_B not in enemy_tiles:
             fitness += 1
 
         if tile_B in my_tiles and game.get_map_troops()[t_i, t_j] + troops <= Game.TileTroopMax:
@@ -216,6 +215,8 @@ def make_move(genome, config, render=False):
     tile_A = player_move["tile_A"]
     tile_B = player_move["tile_B"]
     troops = player_move["troops"]
+
+    print(move_type, tile_A, tile_B, troops)
 
     move = 'Waiting...'
     has_progress = False
