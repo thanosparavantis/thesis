@@ -1,144 +1,264 @@
 import glob
 import os
+from math import sqrt
 
 import neat
 import numpy as np
 from neat import DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, StdOutReporter, StatisticsReporter, Checkpointer, Population
 from neat.nn import FeedForwardNetwork
 
+from game_map import GameMap
+from nn_parser import NeuralNetworkParser
+
 
 def get_fitness(genomes, config):
-    idx = 1
+    blue_production = 0
+    red_production = 0
+    blue_attacks = 0
+    red_attacks = 0
+    blue_transports = 0
+    red_transports = 0
 
     for genome_id, genome in genomes:
-        last_fitness = 0
+        genome.fitness = 0
+
+        while True:
+            has_progress, player_move = make_move(genome, config)
+            genome.fitness += evaluate_fitness(player_move)
+
+            if not has_progress or game.get_tiles(game.get_player_id()) == 0:
+                break
+
+            game.change_player_id()
+
+            has_progress, player_move = make_move(genome, config)
+            genome.fitness += evaluate_fitness(player_move)
+
+            if not has_progress or game.get_tiles(game.get_player_id()) == 0:
+                break
+
+            game.change_player_id()
+            game.increase_round()
+
         blue_player = game.get_player(Game.BluePlayer)
         red_player = game.get_player(Game.RedPlayer)
 
-        while True:
-            play_round(genome, config)
-            game.change_player_id()
-            game.reset_moves()
-            play_round(genome, config)
-            game.reset_moves()
-
-            genome.fitness = np.sum([
-                game.get_tile_count(Game.BluePlayer) * blue_player.get_total_production(),
-                game.get_tile_count(Game.BluePlayer) * blue_player.get_total_attacks(),
-                game.get_tile_count(Game.BluePlayer) * blue_player.get_total_attacks_suceeded(),
-                game.get_tile_count(Game.BluePlayer) * blue_player.get_total_attacks_failed(),
-                game.get_tile_count(Game.RedPlayer) * red_player.get_total_production(),
-                game.get_tile_count(Game.RedPlayer) * red_player.get_total_attacks(),
-                game.get_tile_count(Game.RedPlayer) * red_player.get_total_attacks_suceeded(),
-                game.get_tile_count(Game.RedPlayer) * red_player.get_total_attacks_failed(),
-            ]).item()
-
-            # game.render_map(f'Map Overview', f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome_id}     Fitness: {genome.fitness}')
-
-            if genome.fitness <= last_fitness:
-                break
-
-            game.increase_round()
-            last_fitness = genome.fitness
-
-        # print(f'{idx}. Genome {genome.key} has fitness: {genome.fitness}')
-
-        # game_stats.add_fitness(genome.fitness)
-        # game_stats.add_blue_production(blue_player.get_total_production())
-        # game_stats.add_blue_attack_successful(blue_player.get_total_attacks_suceeded())
-        # game_stats.add_blue_transport(blue_player.get_total_transports())
-        # game_stats.add_red_production(red_player.get_total_production())
-        # game_stats.add_red_attack_successful(red_player.get_total_attacks_suceeded())
-        # game_stats.add_red_transport(red_player.get_total_transports())
-        # game_stats.render_plot()
+        blue_production += blue_player.get_total_production()
+        red_production += red_player.get_total_production()
+        blue_attacks += blue_player.get_total_attacks()
+        red_attacks += red_player.get_total_attacks()
+        blue_transports += blue_player.get_total_transports()
+        red_transports += red_player.get_total_transports()
 
         game.reset_game()
-        idx += 1
+
+    game_stats.add_blue_production(blue_production)
+    game_stats.add_red_production(red_production)
+    game_stats.add_blue_attack(blue_attacks)
+    game_stats.add_red_attack(red_attacks)
+    game_stats.add_blue_transport(blue_transports)
+    game_stats.add_red_transport(red_transports)
 
 
-def play_round(genome, config):
-    # Create a neural network based on the genome
-    network = FeedForwardNetwork.create(genome, config)
-    player = game.get_player(game.get_player_id())
-    # title = f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome.key}'
-    # subtitle = 'Moves: {}     Fitness: {}'
+def evaluate_fitness(player_move):
+    fitness = 0
+    my_tiles = game.get_tiles(game.get_player_id())
+    my_adj_tiles = game.get_tiles_adj(game.get_player_id())
+    tiles = game.get_tile_count(game.get_player_id())
+    move_type = player_move["move_type"]
+    tile_A = player_move["tile_A"]
+    tile_B = player_move["tile_B"]
+    troops = player_move["troops"]
+    coord_group_A = set([coord for tile in my_tiles for coord in tile])
+    coord_group_B = set([coord for tile in my_tiles.union(my_adj_tiles) for coord in tile])
+    coord_group_C = set([coord for tile in my_adj_tiles for coord in tile])
+    can_produce = game.get_troop_count(game.get_player_id()) % 20 != 0
+    can_transport = tiles > 1
 
+    s_i, s_j = tile_A
+    t_i, t_j = tile_B
+
+    if (move_type == 0 and can_produce) or move_type == 1 or (move_type == 2 and can_transport):
+        # +8 fitness all
+
+        fitness += 1
+
+        if 0 <= s_i <= Game.MapWidth - 1:
+            fitness += 1
+
+        if 0 <= s_j <= Game.MapHeight - 1:
+            fitness += 1
+
+        if s_i in coord_group_A:
+            fitness += 1
+
+        if s_j in coord_group_A:
+            fitness += 1
+
+        if s_i in coord_group_B:
+            fitness += 1
+
+        if s_j in coord_group_B:
+            fitness += 1
+
+        if tile_A in my_tiles:
+            fitness += 1
+
+    if move_type == 0 and can_produce:
+        # + 17 fitness all
+
+        if tile_A in my_tiles and game.get_map_troops()[s_i, s_j] < Game.TileTroopMax:
+            fitness += 1
+
+        if game.is_production_move_valid(tile_A):
+            fitness += 16
+
+    if move_type == 1 or (move_type == 2 and can_transport):
+        # + 8 fitness all
+
+        if t_i in coord_group_B:
+            fitness += 1
+
+        if t_j in coord_group_B:
+            fitness += 1
+
+        if 0 <= t_i <= Game.MapWidth - 1:
+            fitness += 1
+
+        if 0 <= t_j <= Game.MapHeight - 1:
+            fitness += 1
+
+        if tile_A != tile_B:
+            fitness += 1
+
+        if Game.TileTroopMin <= troops <= Game.TileTroopMax:
+            fitness += 1
+
+        if tile_A in my_tiles and game.get_map_troops()[s_i, s_j] >= troops:
+            fitness += 1
+
+        if Game.TileTroopMin <= troops <= Game.TileTroopMax:
+            fitness += 1
+
+    if move_type == 1:
+        # + 7 fitness all
+
+        if t_i in coord_group_C:
+            fitness += 1
+
+        if t_j in coord_group_C:
+            fitness += 1
+
+        if tile_B in my_adj_tiles:
+            fitness += 1
+
+        if game.is_attack_move_valid(tile_A, tile_B, troops):
+            fitness += 4
+
+    if move_type == 2 and can_transport:
+        # + 7 fitness all
+
+        if t_i in coord_group_A:
+            fitness += 1
+
+        if t_j in coord_group_A:
+            fitness += 1
+
+        if tile_B in my_tiles:
+            fitness += 1
+
+        if abs(s_i - t_i) <= 1:
+            fitness += 1
+
+        if abs(s_j - t_j) <= 1:
+            fitness += 1
+
+        if tile_B in my_tiles and game.get_map_troops()[t_i, t_j] + troops <= Game.TileTroopMax:
+            fitness += 1
+
+        if game.is_transport_move_valid(tile_A, tile_B, troops):
+            fitness += 1
+
+    return fitness
+
+
+def play_game(genome, config, render=False):
     while True:
-        # First off, if the player ran out of moves then end this round
-        if not game.has_moves():
+        has_progress, player_move = make_move(genome, config, render)
+
+        if not has_progress or game.get_tiles(game.get_player_id()) == 0:
             break
 
-        # Create input for the neural network and store output
-        net_output = network.activate(game.create_input())
-        output = game.parse_output(net_output)
+        game.change_player_id()
 
-        # game.render_map(title, subtitle.format(game.get_moves(), genome.fitness))
+        has_progress, player_move = make_move(genome, config, render)
 
-        # Move cursor A and B on the map
-        moved_a = False
-        moved_b = False
+        if not has_progress or game.get_tiles(game.get_player_id()) == 0:
+            break
 
-        # If the output from 0 to 3 has activations, then the neural network wants to move cursor A
-        if output[0] and player.can_move_up(Player.CursorA):
-            player.move_up(Player.CursorA)
-            moved_a = True
-        elif output[1] and player.can_move_down(Player.CursorA):
-            player.move_down(Player.CursorA)
-            moved_a = True
-        elif output[2] and player.can_move_left(Player.CursorA):
-            player.move_left(Player.CursorA)
-            moved_a = True
-        elif output[3] and player.can_move_right(Player.CursorA):
-            player.move_right(Player.CursorA)
-            moved_a = True
+        game.change_player_id()
 
-        # Update the map if cursor A movement was valid
-        # if moved_a:
-        #     game.render_map(title, subtitle.format(game.get_moves(), genome.fitness))
+        game.increase_round()
 
-        # If the output from 0 to 3 has activations, then the neural network wants to move cursor B
-        if output[4] and player.can_move_up(Player.CursorB):
-            player.move_up(Player.CursorB)
-            moved_b = True
-        elif output[5] and player.can_move_down(Player.CursorB):
-            player.move_down(Player.CursorB)
-            moved_b = True
-        elif output[6] and player.can_move_left(Player.CursorB):
-            player.move_left(Player.CursorB)
-            moved_b = True
-        elif output[7] and player.can_move_right(Player.CursorB):
-            player.move_right(Player.CursorB)
-            moved_b = True
+    if render:
+        game_map.render(
+            '',
+            f'Game ended...'
+        )
 
-        # Update the map if cursor B movement was valid
-        # if moved_b:
-        #     game.render_map(title, subtitle.format(game.get_moves(), genome.fitness))
 
-        # If the output 9 has activations, then the neural network wants to make a production move
-        if output[9] and game.is_production_move_valid():
-            game.production_move()
+def make_move(genome, config, render=False):
+    network = FeedForwardNetwork.create(genome, config)
+    network_output = network.activate(nn_parser.encode_state())
+    player_move = nn_parser.decode_output(network_output)
 
-        # If the output 8 has activations, then the neural network wants to make an attack or transport
-        if output[8] and game.is_attack_move_valid():
-            game.attack_move()
-        elif output[8] and game.is_transport_move_valid():
-            game.transport_move()
+    move_type = player_move["move_type"]
+    tile_A = player_move["tile_A"]
+    tile_B = player_move["tile_B"]
+    troops = player_move["troops"]
 
-        # If the neural network made a successful production, attack or transport move, reset moves
-        if (output[9] and game.is_production_move_valid()) or (output[8] and game.is_attack_move_valid()):
-            game.reset_moves()
-        # Otherwise the neural network is probably doing nothing useful, so increment moves
-        else:
-            game.make_move()
+    move = 'Waiting...'
+    has_progress = False
+
+    if render:
+        print(f'{game.get_round()}.{game.get_player_id()}', f'Type: {move_type}', f'Tile A: {tile_A}', f'Tile B: {tile_B}', f'Troops: {troops}')
+
+        game_map.render(
+            f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome.key}     Fitness: {genome.fitness}',
+            f'{move}'
+        )
+
+    if move_type == 0 and game.is_production_move_valid(tile_A):
+        game.production_move(tile_A)
+        move = f'Production Move {tile_A}'
+        has_progress = True
+    elif move_type == 1 and game.is_attack_move_valid(tile_A, tile_B, troops):
+        game.attack_move(tile_A, tile_B, troops)
+        move = f'Attack Move {tile_A} → {tile_B} with {troops} troops'
+        has_progress = True
+    elif move_type == 2 and game.is_transport_move_valid(tile_A, tile_B, troops):
+        game.is_transport_move_valid(tile_A, tile_B, troops)
+        move = f'Transport Move {tile_A} → {tile_B} with {troops} troops'
+        has_progress = True
+
+    if render and has_progress:
+        game_map.render(
+            f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome.key}     Fitness: {genome.fitness}',
+            f'{move}'
+        )
+
+    return has_progress, player_move
 
 
 if __name__ == '__main__':
     from game import Game
-    from player import Player
     from game_stats import GameStatistics
 
     game = Game()
+    game_map = GameMap(game)
     game_stats = GameStatistics()
+    nn_parser = NeuralNetworkParser(game)
+
     neat_config = neat.Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
     if not os.path.isdir('./checkpoints'):
@@ -156,5 +276,20 @@ if __name__ == '__main__':
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
-    pop.add_reporter(Checkpointer(1, filename_prefix='./checkpoints/neat-checkpoint-'))
-    pop.run(get_fitness, 100)
+    pop.add_reporter(Checkpointer(100, filename_prefix='./checkpoints/neat-checkpoint-'))
+
+    last_genome = None
+
+    while True:
+        genome = pop.run(get_fitness, 1)
+
+        game_stats.add_fitness(genome.fitness)
+        game_stats.render_plot()
+
+        if genome == last_genome:
+            continue
+        else:
+            last_genome = genome
+
+        play_game(genome, neat_config, render=True)
+

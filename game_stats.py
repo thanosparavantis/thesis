@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes, np
-from matplotlib.figure import Figure
 
 
 class GameStatistics:
@@ -24,10 +23,10 @@ class GameStatistics:
     def add_red_production(self, sample):
         self._red_production_samples.append(sample)
 
-    def add_blue_attack_successful(self, sample):
+    def add_blue_attack(self, sample):
         self._blue_attack_samples.append(sample)
 
-    def add_red_attack_successful(self, sample):
+    def add_red_attack(self, sample):
         self._red_attack_samples.append(sample)
 
     def add_blue_transport(self, sample):
@@ -61,7 +60,7 @@ class GameStatistics:
             fitness_axis.plot(x, y, color='green', alpha=0.6)
             fitness_axis.plot(x, mean_y, color='gray')
 
-        production_axis.set_title('All Production')
+        production_axis.set_title('Production')
 
         if len(self._blue_production_samples) > 0:
             x, y, mean_y = self.get_graph_data(self._blue_production_samples)
@@ -73,7 +72,7 @@ class GameStatistics:
             production_axis.plot(x, y, color='red', alpha=0.6)
             production_axis.plot(x, mean_y, color='red')
 
-        attack_axis.set_title('Successful Attacks')
+        attack_axis.set_title('Attacks')
 
         if len(self._blue_attack_samples) > 0:
             x, y, mean_y = self.get_graph_data(self._blue_attack_samples)
@@ -85,7 +84,7 @@ class GameStatistics:
             attack_axis.plot(x, y, color='red', alpha=0.6)
             attack_axis.plot(x, mean_y, color='red')
 
-        transport_axis.set_title('All Transports')
+        transport_axis.set_title('Transports')
 
         if len(self._blue_transport_samples) > 0:
             x, y, mean_y = self.get_graph_data(self._blue_transport_samples)
