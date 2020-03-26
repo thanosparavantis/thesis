@@ -22,13 +22,18 @@ class Game:
     TileTroopMin = 1
 
     # The maximum amount of troops for each tile, attack and transfer
-    TileTroopMax = 20
+    TileTroopMax = 32
 
     # The probability of a soldier spawning in a tile owned by nature
     NatureTroopProbability = 0.1
 
     # The amount of moves before a player's state is declared stale
     MaxMoves = 10
+
+    InvalidMove = 3
+    ProductionMove = 0
+    AttackMove = 1
+    TransportMove = 2
 
     def __init__(self):
         # Metadata information about player characteristics
@@ -68,11 +73,11 @@ class Game:
 
             GamePlayer(name='blue',
                        tile_color='#2A8FBD',
-                       tile_alpha=0.4),
+                       tile_alpha=0.5),
 
             GamePlayer(name='red',
                        tile_color='#B40406',
-                       tile_alpha=0.4),
+                       tile_alpha=0.5),
         ]
 
         self._map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
@@ -213,12 +218,12 @@ class Game:
         return int(troops)
 
     def get_tiles(self, player_id):
-        tiles = set()
+        tiles = []
 
         for i in range(Game.MapWidth):
             for j in range(Game.MapHeight):
                 if self._map_owners[i, j] == player_id:
-                    tiles.add((i, j))
+                    tiles.append((i, j))
 
         return tiles
 
@@ -228,14 +233,14 @@ class Game:
         for i in range(Game.MapWidth):
             for j in range(Game.MapHeight):
                 if self._map_owners[i, j] == player_id:
-                    adjacent.add((i + 1, j))
+                    adjacent.add((i - 1, j + 1))
                     adjacent.add((i, j + 1))
+                    adjacent.add((i + 1, j + 1))
                     adjacent.add((i - 1, j))
+                    adjacent.add((i + 1, j))
+                    adjacent.add((i - 1, j - 1))
                     adjacent.add((i, j - 1))
                     adjacent.add((i + 1, j - 1))
-                    adjacent.add((i - 1, j + 1))
-                    adjacent.add((i + 1, j + 1))
-                    adjacent.add((i - 1, j - 1))
 
         adjacent_valid = set()
 
@@ -245,5 +250,4 @@ class Game:
             if 0 <= i <= Game.MapWidth - 1 and 0 <= j <= Game.MapHeight - 1 and self._map_owners[i, j] != player_id:
                 adjacent_valid.add(item)
 
-        return adjacent_valid
-
+        return list(adjacent_valid)
