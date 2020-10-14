@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 from sklearn import preprocessing
 
@@ -24,55 +22,62 @@ class NeuralNetworkParser:
 
         return inputs
 
-    def decode_output(self, output):
+    def decode_state(self, output):
         from game import Game
         output = np.round(output).astype('uint8')
 
         my_tiles = self._game.get_tiles(self._game.get_player_id())
-        my_tiles_adj = self._game.get_tiles_adj(self._game.get_player_id())
 
-        move_type = Game.InvalidMove
-        tile_id = self.parse_int(output[2:8])
-        tile_adj = self.parse_int(output[8:11])
-        troops = self.parse_int(output[11:16]) + 1
+        tile_id_bits = output[:6]
+        tile_id = self.parse_int(tile_id_bits)
+        tile_adj_bits = output[6:9]
+        tile_adj = self.parse_int(tile_adj_bits)
+        troops_bits = output[9:]
+        troops = min(self.parse_int(troops_bits), 20) + 1
 
         tile_A = None
         tile_B = None
 
         if tile_id < len(my_tiles):
             tile_A = my_tiles[tile_id]
-        # else:
-        #     tile_A = my_tiles[0]
 
             adjacent = [
+                (tile_A[0] - 1, tile_A[1] - 1),
+                (tile_A[0] - 1, tile_A[1]),
                 (tile_A[0] - 1, tile_A[1] + 1),
+                (tile_A[0], tile_A[1] - 1),
                 (tile_A[0], tile_A[1] + 1),
                 (tile_A[0] + 1, tile_A[1] + 1),
-                (tile_A[0] - 1, tile_A[1]),
                 (tile_A[0] + 1, tile_A[1]),
-                (tile_A[0] - 1, tile_A[1] - 1),
-                (tile_A[0], tile_A[1] - 1),
                 (tile_A[0] + 1, tile_A[1] - 1)
             ]
 
             tile_B = adjacent[tile_adj]
 
-        # idx = 0
-        # while tile_B not in my_tiles and tile_B not in my_tiles_adj:
-        #     tile_B = adjacent[idx]
-        #     idx += 1
+        move_type = Game.InvalidMove
 
         if tile_A and tile_B:
-            if tile_A == tile_B and self._game.is_production_move_valid(tile_A):
+            production_valid = self._game.is_production_move_valid(tile_A)
+            attack_valid = self._game.is_attack_move_valid(tile_A, tile_B, troops)
+            transport_valid = self._game.is_transport_move_valid(tile_A, tile_B, troops)
+
+            if production_valid:
+                tile_B = tile_A
+                troops = 0
                 move_type = Game.ProductionMove
-            elif tile_A in my_tiles and tile_B in my_tiles_adj and self._game.is_attack_move_valid(tile_A, tile_B, troops):
+            elif attack_valid:
                 move_type = Game.AttackMove
-            elif tile_A in my_tiles and tile_B in my_tiles and self._game.is_transport_move_valid(tile_A, tile_B, troops):
+            elif transport_valid:
                 move_type = Game.TransportMove
 
-        player_move = {"move_type": move_type, "tile_A": tile_A, "tile_B": tile_B, "troops": troops}
+        state = {
+            "move_type": move_type,
+            "tile_A": tile_A,
+            "tile_B": tile_B,
+            "troops": troops
+        }
 
-        return player_move
+        return state
 
     @staticmethod
     def parse_int(encoded_state):

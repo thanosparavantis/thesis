@@ -24,7 +24,7 @@ class GamePlayer:
     def get_total_attacks(self):
         return self._total_attacks
 
-    def get_total_attacks_suceeded(self):
+    def get_total_attacks_succeeded(self):
         return self._total_attacks_succeeded
 
     def get_total_attacks_failed(self):

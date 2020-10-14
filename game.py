@@ -22,7 +22,7 @@ class Game:
     TileTroopMin = 1
 
     # The maximum amount of troops for each tile, attack and transfer
-    TileTroopMax = 32
+    TileTroopMax = 20
 
     # The probability of a soldier spawning in a tile owned by nature
     NatureTroopProbability = 0.1
@@ -30,7 +30,7 @@ class Game:
     # The amount of moves before a player's state is declared stale
     MaxMoves = 10
 
-    InvalidMove = 3
+    InvalidMove = -1
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
@@ -81,13 +81,9 @@ class Game:
         ]
 
         self._map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
-        self._map_owners[1, 1] = Game.BluePlayer
-        self._map_owners[Game.MapWidth - 2, Game.MapHeight - 2] = Game.RedPlayer
-
+        self._map_owners[0, 0] = Game.BluePlayer
+        self._map_owners[Game.MapWidth - 1, Game.MapHeight - 1] = Game.RedPlayer
         self._map_troops = np.zeros_like(self._map_owners)
-        self._map_troops[1, 1] = Game.TileTroopMax / 2
-        self._map_troops[Game.MapWidth - 2, Game.MapHeight - 2] = Game.TileTroopMax / 2
-
         self._player_id = Game.BluePlayer
         self.reset_round()
 
