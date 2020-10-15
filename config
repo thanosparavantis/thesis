@@ -3,15 +3,15 @@
     fitness_threshold                   = 10000
     no_fitness_termination              = False
     pop_size                            = 100
-    reset_on_extinction                 = True
+    reset_on_extinction                 = False
 
 [DefaultStagnation]
     species_fitness_func                = max
-    max_stagnation                      = 15
-    species_elitism                     = 2
+    max_stagnation                      = 100
+    species_elitism                     = 0
 
 [DefaultReproduction]
-    elitism                             = 1
+    elitism                             = 0
     survival_threshold                  = 0.2
     min_species_size                    = 2
 
@@ -41,7 +41,7 @@
 
     num_inputs                          = 36
     num_hidden                          = 0
-    num_outputs                         = 14
+    num_outputs                         = 3
 
     bias_init_mean                      = 0.0
     bias_init_stdev                     = 1.0

@@ -4,16 +4,16 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
+from Game import Game
+
 
 class GameMap:
-    def __init__(self, game):
+    def __init__(self, game: Game):
         self._game = game
         self._map_fig = None
         self._map_ax = None
 
-    def render(self, title, subtitle):
-        from game import Game
-
+    def render(self, title: str, subtitle: str) -> None:
         if self._map_fig is None:
             self._map_fig, self._map_ax = plt.subplots()  # type: Figure, Axes
 

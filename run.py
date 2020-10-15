@@ -1,15 +1,17 @@
 import glob
 import os
+from typing import List
 
 import neat
 from neat import DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, StdOutReporter, \
     StatisticsReporter, Checkpointer, Population
 from neat.nn import FeedForwardNetwork
 
-from game import Game
-from game_map import GameMap
-from game_stats import GameStatistics
-from nn_parser import NeuralNetworkParser
+import GameStats
+from Game import Game
+from GameMap import GameMap
+from GameStats import GameStatistics
+from NeuralNetworkParser import NeuralNetworkParser
 
 
 def main():
@@ -41,7 +43,9 @@ def main():
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
-    pop.add_reporter(Checkpointer(10, filename_prefix='./checkpoints/neat-checkpoint-'))
+    pop.add_reporter(Checkpointer(
+        generation_interval=1,
+        filename_prefix='./checkpoints/neat-checkpoint-'))
 
     while True:
         genome = pop.run(
@@ -53,7 +57,12 @@ def main():
         play_game(genome, neat_config, nn_parser, game, game_map, True)
 
 
-def evaluate_fitness(genomes, config, nn_parser, game, game_map, game_stats):
+def evaluate_fitness(genomes: List[neat.DefaultGenome],
+                     config: neat.Config,
+                     nn_parser: NeuralNetworkParser,
+                     game: Game,
+                     game_map: GameMap,
+                     game_stats: GameStats):
     for genome_id, genome in genomes:
         genome.fitness = 0
 
@@ -65,32 +74,9 @@ def evaluate_fitness(genomes, config, nn_parser, game, game_map, game_stats):
         game.reset_game()
 
 
-def play_game(genome, config, nn_parser, game, game_map, render=False):
-    if render:
-        game_map.render(
-            f'Overview',
-            f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome.key}     Fitness: {genome.fitness}'
-        )
-
-    while True:
-        player_move = make_move(genome, config, nn_parser, game, game_map, render)
-
-        if player_move["move_type"] == Game.InvalidMove or game.get_tile_count(game.get_player_id()) == 0:
-            break
-
-        game.change_player_id()
-
-        player_move = make_move(genome, config, nn_parser, game, game_map, render)
-
-        if player_move["move_type"] == Game.InvalidMove or game.get_tile_count(game.get_player_id()) == 0:
-            break
-
-        game.change_player_id()
-
-        game.increase_round()
-
-
-def record_stats(genome, game, game_stats):
+def record_stats(genome: neat.DefaultGenome,
+                 game: Game,
+                 game_stats: GameStats):
     blue_player = game.get_player(Game.BluePlayer)
     red_player = game.get_player(Game.RedPlayer)
 
@@ -104,8 +90,44 @@ def record_stats(genome, game, game_stats):
     game_stats.render_plot()
 
 
-def make_move(genome, config, nn_parser, game, game_map, render=False):
+def play_game(genome: neat.DefaultGenome,
+              config: neat.Config,
+              nn_parser: NeuralNetworkParser,
+              game: Game,
+              game_map: GameMap,
+              render: bool = False):
     network = FeedForwardNetwork.create(genome, config)
+
+    if render:
+        game_map.render(
+            f'Overview',
+            f'Round: {game.get_round()}.{game.get_player_id()}     Genome: {genome.key}     Fitness: {genome.fitness}'
+        )
+
+    while True:
+        player_move = make_move(genome, network, nn_parser, game, game_map, render)
+
+        if player_move["move_type"] == Game.InvalidMove or game.get_tile_count(game.get_player_id()) == 0:
+            break
+
+        game.change_player_id()
+
+        player_move = make_move(genome, network, nn_parser, game, game_map, render)
+
+        if player_move["move_type"] == Game.InvalidMove or game.get_tile_count(game.get_player_id()) == 0:
+            break
+
+        game.change_player_id()
+
+        game.increase_round()
+
+
+def make_move(genome: neat.DefaultGenome,
+              network: neat.nn.FeedForwardNetwork,
+              nn_parser: NeuralNetworkParser,
+              game: Game,
+              game_map: GameMap,
+              render: bool = False):
     network_output = network.activate(nn_parser.encode_state())
     player_move = nn_parser.decode_state(network_output)
 

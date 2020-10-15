@@ -1,5 +1,8 @@
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes, np
+from numpy import ndarray
 
 
 class GameStatistics:
@@ -14,28 +17,28 @@ class GameStatistics:
         self.figure = None
         self.ax_list = None
 
-    def add_fitness(self, sample):
+    def add_fitness(self, sample: int) -> None:
         self._fitness_samples.append(sample)
 
-    def add_blue_production(self, sample):
+    def add_blue_production(self, sample: int) -> None:
         self._blue_production_samples.append(sample)
 
-    def add_red_production(self, sample):
+    def add_red_production(self, sample: int) -> None:
         self._red_production_samples.append(sample)
 
-    def add_blue_attack(self, sample):
+    def add_blue_attack(self, sample: int) -> None:
         self._blue_attack_samples.append(sample)
 
-    def add_red_attack(self, sample):
+    def add_red_attack(self, sample: int) -> None:
         self._red_attack_samples.append(sample)
 
-    def add_blue_transport(self, sample):
+    def add_blue_transport(self, sample: int) -> None:
         self._blue_transport_samples.append(sample)
 
-    def add_red_transport(self, sample):
+    def add_red_transport(self, sample: int) -> None:
         self._red_transport_samples.append(sample)
 
-    def render_plot(self):
+    def render_plot(self) -> None:
         if self.figure is None:
             self.figure, self.ax_list = plt.subplots(2, 2)
 
@@ -98,8 +101,8 @@ class GameStatistics:
 
         plt.pause(0.001)
 
-    def get_graph_data(self, sample_array):
-        sample_array = sample_array[-100:]
+    def get_graph_data(self, sample_array: List[int]) -> Tuple[List[int], List[int], List[ndarray]]:
+        sample_array = sample_array[-5000:]
         x = [i for i in range(len(sample_array))]
         y = sample_array
         mean = np.mean(sample_array)

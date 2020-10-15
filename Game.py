@@ -1,70 +1,48 @@
+from typing import Tuple, List
+
 import numpy as np
+from numpy import ndarray
 from sklearn import preprocessing
+
+from GamePlayer import GamePlayer
 
 
 class Game:
-    # The nature player that owns the tiles inbetween the two players
-    NaturePlayer = 0
-
-    # The blue player who starts on the upper left corner
-    BluePlayer = 1
-
-    # The red player who starts on the lower right corner
-    RedPlayer = 2
-
-    # The number of tiles on the x-axis
     MapWidth = 6
-
-    # The number of tiles on the y-axis
     MapHeight = 6
-
-    # The minimum amount of troops for each tile, attack and transfer
+    MapSize = MapWidth * MapHeight
+    NaturePlayer = 0
+    BluePlayer = 1
+    BlueStartPoint = (0, 0)
+    RedPlayer = 2
+    RedStartPoint = (MapWidth - 1, MapHeight - 1)
     TileTroopMin = 1
-
-    # The maximum amount of troops for each tile, attack and transfer
     TileTroopMax = 20
-
-    # The probability of a soldier spawning in a tile owned by nature
+    StartingTroops = TileTroopMin
     NatureTroopProbability = 0.1
-
-    # The amount of moves before a player's state is declared stale
-    MaxMoves = 10
-
     InvalidMove = -1
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
+    AbandonTile = False
 
     def __init__(self):
-        # Metadata information about player characteristics
         self._players = None
-
-        # Metadata information about tile owners
         self._map_owners = None
-
-        # Metadata information about troops in tiles
         self._map_troops = None
-
-        # Keeps track of the current player that makes moves on each turn
         self._player_id = None
-
-        # The number of rounds in the game so far
         self._round = None
-
-        # Initializes all variables declared above
         self.reset_game()
-
-        # A min-max scaler that scales inputs to [0, 1] for neural networks
         self._scaler = preprocessing.MinMaxScaler()
 
-    def get_map_owners(self):
+    def get_map_owners(self) -> ndarray:
         return self._map_owners
 
-    def get_map_troops(self):
+    def get_map_troops(self) -> ndarray:
         return self._map_troops
 
-    def reset_game(self):
-        from game_player import GamePlayer
+    def reset_game(self) -> None:
+        from GamePlayer import GamePlayer
 
         self._players = [
             GamePlayer(name='nature',
@@ -81,37 +59,39 @@ class Game:
         ]
 
         self._map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
-        self._map_owners[0, 0] = Game.BluePlayer
-        self._map_owners[Game.MapWidth - 1, Game.MapHeight - 1] = Game.RedPlayer
+        self._map_owners[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.BluePlayer
+        self._map_owners[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.RedPlayer
         self._map_troops = np.zeros_like(self._map_owners)
+        self._map_troops[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.StartingTroops
+        self._map_troops[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.StartingTroops
         self._player_id = Game.BluePlayer
         self.reset_round()
 
-    def change_player_id(self):
+    def change_player_id(self) -> None:
         self._player_id = Game.RedPlayer if self._player_id == Game.BluePlayer else Game.BluePlayer
 
-    def get_player_id(self):
+    def get_player_id(self) -> int:
         return self._player_id
 
-    def get_player(self, player_id):
+    def get_player(self, player_id: int) -> GamePlayer:
         return self._players[player_id]
 
-    def get_round(self):
+    def get_round(self) -> int:
         return self._round
 
-    def reset_round(self):
+    def reset_round(self) -> None:
         self._round = 1
 
-    def increase_round(self):
+    def increase_round(self) -> None:
         self._round += 1
 
-    def production_move(self, tile_A):
+    def production_move(self, tile_A: Tuple[int, int]) -> None:
         s_i, s_j = tile_A
         self._map_troops[s_i, s_j] += 1
         player = self._players[self._player_id]
         player.increase_production()
 
-    def is_production_move_valid(self, tile_A):
+    def is_production_move_valid(self, tile_A: Tuple[int, int]) -> bool:
         my_tiles = self.get_tiles(self._player_id)
 
         if tile_A not in my_tiles:
@@ -124,13 +104,13 @@ class Game:
 
         return True
 
-    def attack_move(self, tile_A, tile_B, attackers):
+    def attack_move(self, tile_A: Tuple[int, int], tile_B: Tuple[int, int], attackers: int) -> None:
         player = self._players[self._player_id]
         s_i, s_j = tile_A
         t_i, t_j = tile_B
 
-        defenders = self._map_troops[t_i, t_j]
         self._map_troops[s_i, s_j] -= attackers
+        defenders = self._map_troops[t_i, t_j]
 
         if defenders < attackers:
             self._map_owners[t_i, t_j] = self._player_id
@@ -141,9 +121,9 @@ class Game:
         self._map_troops[t_i, t_j] = abs(defenders - attackers)
         player.increase_attacks()
 
-    def is_attack_move_valid(self, tile_A, tile_B, attackers):
+    def is_attack_move_valid(self, tile_A: Tuple[int, int], tile_B: Tuple[int, int], attackers: int) -> bool:
         my_tiles = self.get_tiles(self._player_id)
-        my_adj_tiles = self.get_tiles_adj(self._player_id)
+        my_adj_tiles = self.get_global_tiles_adj(self._player_id)
 
         if tile_A not in my_tiles:
             return False
@@ -153,15 +133,15 @@ class Game:
 
         s_i, s_j = tile_A
 
-        if self._map_troops[s_i, s_j] < attackers:
+        if attackers < Game.TileTroopMin or attackers > Game.TileTroopMax:
             return False
 
-        if attackers < Game.TileTroopMin or attackers > Game.TileTroopMax:
+        if self._map_troops[s_i, s_j] < attackers:
             return False
 
         return True
 
-    def transport_move(self, tile_A, tile_B, transport):
+    def transport_move(self, tile_A: Tuple[int, int], tile_B: Tuple[int, int], transport: int) -> None:
         s_i, s_j = tile_A
         t_i, t_j = tile_B
 
@@ -171,7 +151,7 @@ class Game:
         player = self._players[self._player_id]
         player.increase_transports()
 
-    def is_transport_move_valid(self, tile_A, tile_B, transport):
+    def is_transport_move_valid(self, tile_A: Tuple[int, int], tile_B: Tuple[int, int], transport: int) -> bool:
         my_tiles = self.get_tiles(self._player_id)
 
         if tile_A not in my_tiles:
@@ -200,10 +180,10 @@ class Game:
 
         return True
 
-    def get_tile_count(self, player_id):
+    def get_tile_count(self, player_id: int) -> int:
         return len(self.get_tiles(player_id))
 
-    def get_troop_count(self, player_id):
+    def get_troop_count(self, player_id: int) -> int:
         troops = 0
 
         for i in range(Game.MapWidth):
@@ -213,7 +193,14 @@ class Game:
 
         return int(troops)
 
-    def get_tiles(self, player_id):
+    def get_tile_troops(self, tile: Tuple[int, int]) -> int:
+        return self._map_troops[tile[0], tile[1]]
+
+    @staticmethod
+    def get_tile_coords(index: int) -> Tuple[int, int]:
+        return [(i, j) for i in range(Game.MapWidth) for j in range(Game.MapHeight)][index]
+
+    def get_tiles(self, player_id: int) -> List[Tuple[int, int]]:
         tiles = []
 
         for i in range(Game.MapWidth):
@@ -223,27 +210,47 @@ class Game:
 
         return tiles
 
-    def get_tiles_adj(self, player_id):
-        adjacent = set()
+    def get_global_tiles_adj(self, player_id: int) -> List[Tuple[int, int]]:
+        adjacent_options = set()
 
         for i in range(Game.MapWidth):
             for j in range(Game.MapHeight):
                 if self._map_owners[i, j] == player_id:
-                    adjacent.add((i - 1, j + 1))
-                    adjacent.add((i, j + 1))
-                    adjacent.add((i + 1, j + 1))
-                    adjacent.add((i - 1, j))
-                    adjacent.add((i + 1, j))
-                    adjacent.add((i - 1, j - 1))
-                    adjacent.add((i, j - 1))
-                    adjacent.add((i + 1, j - 1))
+                    adjacent_options.add((i - 1, j + 1))
+                    adjacent_options.add((i, j + 1))
+                    adjacent_options.add((i + 1, j + 1))
+                    adjacent_options.add((i - 1, j))
+                    adjacent_options.add((i + 1, j))
+                    adjacent_options.add((i - 1, j - 1))
+                    adjacent_options.add((i, j - 1))
+                    adjacent_options.add((i + 1, j - 1))
 
-        adjacent_valid = set()
+        adjacent_tiles = set()
 
-        for item in adjacent:
+        for item in adjacent_options:
             i, j = item
-
             if 0 <= i <= Game.MapWidth - 1 and 0 <= j <= Game.MapHeight - 1 and self._map_owners[i, j] != player_id:
-                adjacent_valid.add(item)
+                adjacent_tiles.add(item)
 
-        return list(adjacent_valid)
+        return list(adjacent_tiles)
+
+    def get_tiles_adj(self, tile: Tuple[int, int]) -> List[Tuple[int, int]]:
+        adjacent_options = [
+            (tile[0] - 1, tile[1] - 1),
+            (tile[0] - 1, tile[1]),
+            (tile[0] - 1, tile[1] + 1),
+            (tile[0], tile[1] - 1),
+            (tile[0], tile[1] + 1),
+            (tile[0] + 1, tile[1] + 1),
+            (tile[0] + 1, tile[1]),
+            (tile[0] + 1, tile[1] - 1)
+        ]
+
+        adjacent_tiles = []
+
+        for tile in adjacent_options:
+            i, j = tile
+            if 0 <= i <= Game.MapWidth - 1 and 0 <= j <= Game.MapHeight - 1:
+                adjacent_tiles.append(tile)
+
+        return adjacent_tiles
