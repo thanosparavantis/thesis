@@ -110,6 +110,10 @@ class Game:
         t_i, t_j = tile_B
 
         self._map_troops[s_i, s_j] -= attackers
+
+        if self._map_troops[s_i, s_j] < Game.TileTroopMin:
+            self._map_owners[s_i, s_j] = Game.NaturePlayer
+
         defenders = self._map_troops[t_i, t_j]
 
         if defenders < attackers:
@@ -119,16 +123,24 @@ class Game:
             player.increase_attacks_failed()
 
         self._map_troops[t_i, t_j] = abs(defenders - attackers)
+
+        if self._map_troops[t_i, t_j] < Game.TileTroopMin:
+            self._map_owners[t_i, t_j] = Game.NaturePlayer
+
         player.increase_attacks()
 
     def is_attack_move_valid(self, tile_A: Tuple[int, int], tile_B: Tuple[int, int], attackers: int) -> bool:
         my_tiles = self.get_tiles(self._player_id)
-        my_adj_tiles = self.get_global_tiles_adj(self._player_id)
 
         if tile_A not in my_tiles:
             return False
 
-        if tile_B not in my_adj_tiles:
+        if tile_B in my_tiles:
+            return False
+
+        adjacent = self.get_tiles_adj(tile_A)
+
+        if tile_B not in adjacent:
             return False
 
         s_i, s_j = tile_A
@@ -146,6 +158,10 @@ class Game:
         t_i, t_j = tile_B
 
         self._map_troops[s_i, s_j] -= transport
+
+        if self._map_troops[s_i, s_j] < Game.TileTroopMin:
+            self._map_owners[s_i, s_j] = Game.NaturePlayer
+
         self._map_troops[t_i, t_j] += transport
 
         player = self._players[self._player_id]
@@ -194,7 +210,7 @@ class Game:
         return int(troops)
 
     def get_tile_troops(self, tile: Tuple[int, int]) -> int:
-        return self._map_troops[tile[0], tile[1]]
+        return self._map_troops[tile[0], tile[1]].item()
 
     @staticmethod
     def get_tile_coords(index: int) -> Tuple[int, int]:

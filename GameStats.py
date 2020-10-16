@@ -7,7 +7,8 @@ from numpy import ndarray
 
 class GameStatistics:
     def __init__(self):
-        self._fitness_samples = []
+        self._blue_fitness = []
+        self._red_fitness = []
         self._blue_production_samples = []
         self._red_production_samples = []
         self._blue_attack_samples = []
@@ -17,8 +18,11 @@ class GameStatistics:
         self.figure = None
         self.ax_list = None
 
-    def add_fitness(self, sample: int) -> None:
-        self._fitness_samples.append(sample)
+    def add_blue_fitness(self, sample: int) -> None:
+        self._blue_fitness.append(sample)
+
+    def add_red_fitness(self, sample: int) -> None:
+        self._red_fitness.append(sample)
 
     def add_blue_production(self, sample: int) -> None:
         self._blue_production_samples.append(sample)
@@ -58,10 +62,15 @@ class GameStatistics:
 
         fitness_axis.set_title('Fitness')
 
-        if len(self._fitness_samples):
-            x, y, mean_y = self.get_graph_data(self._fitness_samples)
-            fitness_axis.plot(x, y, color='green', alpha=0.6)
-            fitness_axis.plot(x, mean_y, color='gray')
+        if len(self._blue_fitness):
+            x, y, mean_y = self.get_graph_data(self._blue_fitness)
+            fitness_axis.plot(x, y, color='blue', alpha=0.6)
+            fitness_axis.plot(x, mean_y, color='blue')
+
+        if len(self._red_fitness):
+            x, y, mean_y = self.get_graph_data(self._red_fitness)
+            fitness_axis.plot(x, y, color='red', alpha=0.6)
+            fitness_axis.plot(x, mean_y, color='red')
 
         production_axis.set_title('Production')
 
