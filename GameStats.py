@@ -111,7 +111,7 @@ class GameStatistics:
         plt.pause(0.001)
 
     def get_graph_data(self, sample_array: List[int]) -> Tuple[List[int], List[int], List[ndarray]]:
-        sample_array = sample_array[-5000:]
+        sample_array = sample_array[-100:]
         x = [i for i in range(len(sample_array))]
         y = sample_array
         mean = np.mean(sample_array)

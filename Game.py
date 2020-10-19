@@ -138,7 +138,7 @@ class Game:
         if tile_B in my_tiles:
             return False
 
-        adjacent = self.get_tiles_adj(tile_A)
+        adjacent = self.get_tile_adj(tile_A)
 
         if tile_B not in adjacent:
             return False
@@ -196,6 +196,9 @@ class Game:
 
         return True
 
+    def get_tile_owner(self, tile: Tuple[int, int]) -> int:
+        return self._map_owners[tile[0], tile[1]]
+
     def get_tile_count(self, player_id: int) -> int:
         return len(self.get_tiles(player_id))
 
@@ -226,7 +229,7 @@ class Game:
 
         return tiles
 
-    def get_global_tiles_adj(self, player_id: int) -> List[Tuple[int, int]]:
+    def get_global_tile_adj(self, player_id: int) -> List[Tuple[int, int]]:
         adjacent_options = set()
 
         for i in range(Game.MapWidth):
@@ -250,7 +253,7 @@ class Game:
 
         return list(adjacent_tiles)
 
-    def get_tiles_adj(self, tile: Tuple[int, int]) -> List[Tuple[int, int]]:
+    def get_tile_adj(self, tile: Tuple[int, int]) -> List[Tuple[int, int]]:
         adjacent_options = [
             (tile[0] - 1, tile[1] - 1),
             (tile[0] - 1, tile[1]),
