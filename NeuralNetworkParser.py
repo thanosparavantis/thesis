@@ -110,6 +110,54 @@ class NeuralNetworkParser:
 
         return player_move
 
+    def decode_state_m3(self, output: ndarray):
+        player_id = self._game.get_player_id()
+        move_out = output[0]
+        tile_prod_out = output[1]
+        tile_att_src_out = output[2]
+        tile_att_trg_out = output[3]
+        tile_trans_src_out = output[4]
+        tile_trans_trg_out = output[5]
+        troops_att_out = output[6]
+        troops_trans_out = output[7]
+
+        move_intended = math.ceil(move_out * 2)
+        tile_prod = self._game.get_tile_coords(math.ceil(tile_prod_out * (Game.MapSize - 1)))
+        tile_att_src = self._game.get_tile_coords(math.ceil(tile_att_src_out * (Game.MapSize - 1)))
+        tile_att_trg = self._game.get_tile_coords(math.ceil(tile_att_trg_out * (Game.MapSize - 1)))
+        tile_trans_src = self._game.get_tile_coords(math.ceil(tile_trans_src_out * (Game.MapSize - 1)))
+        tile_trans_trg = self._game.get_tile_coords(math.ceil(tile_trans_trg_out * (Game.MapSize - 1)))
+        troops_att = 1 + math.ceil(troops_att_out * (Game.TileTroopMax - 1))
+        troops_trans = 1 + math.ceil(troops_trans_out * (Game.TileTroopMax - 1))
+
+        prod_valid = self._game.is_production_move_valid(tile_prod)
+        att_valid = self._game.is_attack_move_valid(tile_att_src, tile_att_trg, troops_att)
+        trans_valid = self._game.is_transport_move_valid(tile_trans_src, tile_trans_trg, troops_trans)
+
+        if move_intended == 0 and prod_valid:
+            move_type = Game.ProductionMove
+        elif move_intended == 1 and att_valid:
+            move_type = Game.AttackMove
+        elif move_intended == 2 and trans_valid:
+            move_type = Game.TransportMove
+        else:
+            move_type = Game.InvalidMove
+
+        player_move = {
+            'player_id': player_id,
+            'move_type': move_type,
+            'move_intended': move_intended,
+            'tile_prod': tile_prod,
+            'tile_att_src': tile_att_src,
+            'tile_att_trg': tile_att_trg,
+            'tile_trans_src': tile_trans_src,
+            'tile_trans_trg': tile_trans_trg,
+            'troops_att': troops_att,
+            'troops_trans': troops_trans,
+        }
+
+        return player_move
+
     def _is_tile_maxed(self, tile: Tuple[int, int]) -> bool:
         troops = self._game.get_tile_adj(tile)
         return troops == (Game.TileTroopMax - 1)

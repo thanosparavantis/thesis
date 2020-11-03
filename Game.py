@@ -73,6 +73,9 @@ class Game:
     def get_player_id(self) -> int:
         return self._player_id
 
+    def get_enemy_id(self) -> int:
+        return Game.BluePlayer if self._player_id == Game.RedPlayer else Game.RedPlayer
+
     def get_player(self, player_id: int) -> GamePlayer:
         return self._players[player_id]
 

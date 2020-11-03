@@ -32,8 +32,14 @@ def main():
     if not os.path.isdir('./checkpoints'):
         os.mkdir('./checkpoints')
 
+    game_stats.render_plot()
+    game_map.render('Waiting for game', '')
+
     blue_pop = pop_setup('blue', neat_config)
     red_pop = pop_setup('red', neat_config)
+
+    last_blue_genome = None
+    last_red_genome = None
 
     while True:
         blue_fitness, red_fitness = evaluate_fitness(
@@ -49,11 +55,16 @@ def main():
         blue_genome = blue_pop.run(lambda genomes, config: assign_fitness(genomes, blue_fitness), 1)
         red_genome = red_pop.run(lambda genomes, config: assign_fitness(genomes, red_fitness), 1)
 
+        game_stats.render_plot()
+
         print('=' * 50)
         print('Playing most fit game')
         print('=' * 50)
 
-        # play_game(blue_genome, red_genome, neat_config, nn_parser, game, game_map, True)
+        if blue_genome != last_blue_genome or red_genome != last_red_genome:
+            last_blue_genome = blue_genome
+            last_red_genome = red_genome
+            play_game(blue_genome, red_genome, neat_config, nn_parser, game, game_map, True)
 
 
 def pop_setup(name, neat_config):
@@ -91,16 +102,11 @@ def evaluate_fitness(blue_genomes: Dict[int, neat.DefaultGenome],
 
     for blue_id, blue_genome in blue_genomes.items():
         for red_id, red_genome in red_genomes.items():
-            play_game(blue_genome, red_genome, config, nn_parser, game, game_map, False)
+            blue_fitness_score, red_fitness_score = play_game(blue_genome, red_genome, config, nn_parser, game,
+                                                              game_map, False)
 
             blue_tiles = game.get_tile_count(Game.BluePlayer)
             red_tiles = game.get_tile_count(Game.RedPlayer)
-            nature_tiles = game.get_tile_count(Game.NaturePlayer)
-            blue_troops = game.get_troop_count(Game.BluePlayer)
-            red_troops = game.get_troop_count(Game.RedPlayer)
-
-            blue_fitness_score = 10 * (blue_tiles - red_tiles) + 10 * (blue_tiles - nature_tiles) + (blue_troops - red_troops)
-            red_fitness_score = 10 * (red_tiles - blue_tiles) + 10 * (red_tiles - nature_tiles) + (red_troops - blue_troops)
 
             if blue_tiles == 0:
                 status = 'Red Won'
@@ -124,7 +130,8 @@ def evaluate_fitness(blue_genomes: Dict[int, neat.DefaultGenome],
 
             rounds = game.get_round()
 
-            print(f'Genomes: {blue_id:^5}/{red_id:^5} Fitness: {blue_fitness_score:^5}/{red_fitness_score:^5} Rounds: {rounds:^6} Status: {status:<10} {fitness_record}')
+            print(
+                f'Genomes: {blue_id:^5}/{red_id:^5} Fitness: {blue_fitness_score:^5}/{red_fitness_score:^5} Rounds: {rounds:^6} Status: {status:<10} {fitness_record}')
 
             blue_fitness[blue_id].append(blue_fitness_score)
             red_fitness[red_id].append(red_fitness_score)
@@ -132,15 +139,14 @@ def evaluate_fitness(blue_genomes: Dict[int, neat.DefaultGenome],
             blue_player = game.get_player(Game.BluePlayer)
             red_player = game.get_player(Game.RedPlayer)
 
-            # game_stats.add_blue_fitness(blue_fitness_score)
-            # game_stats.add_red_fitness(red_fitness_score)
-            # game_stats.add_blue_production(blue_player.get_total_production())
-            # game_stats.add_red_production(red_player.get_total_production())
-            # game_stats.add_blue_attack(blue_player.get_total_attacks())
-            # game_stats.add_red_attack(red_player.get_total_attacks())
-            # game_stats.add_blue_transport(blue_player.get_total_transports())
-            # game_stats.add_red_transport(red_player.get_total_transports())
-            # game_stats.render_plot()
+            game_stats.add_blue_fitness(blue_fitness_score)
+            game_stats.add_red_fitness(red_fitness_score)
+            game_stats.add_blue_production(blue_player.get_total_production())
+            game_stats.add_red_production(red_player.get_total_production())
+            game_stats.add_blue_attack(blue_player.get_total_attacks())
+            game_stats.add_red_attack(red_player.get_total_attacks())
+            game_stats.add_blue_transport(blue_player.get_total_transports())
+            game_stats.add_red_transport(red_player.get_total_transports())
 
             game.reset_game()
 
@@ -167,9 +173,11 @@ def play_game(blue_genome: neat.DefaultGenome,
               nn_parser: NeuralNetworkParser,
               game: Game,
               game_map: GameMap,
-              render: bool = False) -> None:
+              render: bool = False) -> Tuple[int, int]:
     blue_nn = FeedForwardNetwork.create(blue_genome, config)
     red_nn = FeedForwardNetwork.create(red_genome, config)
+    blue_fitness = 0
+    red_fitness = 0
 
     if render:
         render_map('Overview', game, game_map, blue_genome, red_genome)
@@ -181,7 +189,7 @@ def play_game(blue_genome: neat.DefaultGenome,
 
             break
 
-        player_move = play_move(blue_genome, red_genome, blue_nn, red_nn, nn_parser, game, game_map, render)
+        blue_fitness_score, player_move = play_move(blue_genome, red_genome, blue_nn, red_nn, nn_parser, game, game_map, render)
 
         if player_move['move_type'] == Game.InvalidMove:
             if render:
@@ -189,6 +197,7 @@ def play_game(blue_genome: neat.DefaultGenome,
 
             break
 
+        blue_fitness += blue_fitness_score
         game.change_player_id()
 
         if game.get_tile_count(game.get_player_id()) == 0:
@@ -197,7 +206,7 @@ def play_game(blue_genome: neat.DefaultGenome,
 
             break
 
-        player_move = play_move(blue_genome, red_genome, blue_nn, red_nn, nn_parser, game, game_map, render)
+        red_fitness_score, player_move = play_move(blue_genome, red_genome, blue_nn, red_nn, nn_parser, game, game_map, render)
 
         if player_move['move_type'] == Game.InvalidMove:
             if render:
@@ -205,15 +214,21 @@ def play_game(blue_genome: neat.DefaultGenome,
 
             break
 
-        game.change_player_id()
+        red_fitness += red_fitness_score
 
-        if game.get_round() == 500:
+        if game.get_round() == 200:
             if render:
                 render_map('Game ended with a Tie', game, game_map, blue_genome, red_genome)
 
             break
 
+        game.change_player_id()
         game.increase_round()
+
+    blue_fitness += 200 - game.get_round()
+    red_fitness += 200 - game.get_round()
+
+    return blue_fitness, red_fitness
 
 
 def play_move(blue_genome: neat.DefaultGenome,
@@ -223,8 +238,10 @@ def play_move(blue_genome: neat.DefaultGenome,
               nn_parser: NeuralNetworkParser,
               game: Game,
               game_map: GameMap,
-              render: bool = False) -> Dict:
-    network = blue_nn if game.get_player_id() == Game.BluePlayer else red_nn
+              render: bool = False) -> Tuple[int, Dict]:
+    player_id = game.get_player_id()
+    enemy_id = game.get_enemy_id()
+    network = blue_nn if player_id == Game.BluePlayer else red_nn
     network_output = network.activate(nn_parser.encode_state())
     player_move = nn_parser.decode_state_m2(network_output)
 
@@ -232,24 +249,26 @@ def play_move(blue_genome: neat.DefaultGenome,
     tile_A = player_move['tile_A']
     tile_B = player_move['tile_B']
     troops = player_move['troops']
-
-    move = 'Invalid Move'
+    move_text = 'Invalid Move'
 
     if move_type == Game.ProductionMove:
         game.production_move(tile_A)
-        move = f'Production Move {tile_A}'
+        move_text = f'Production Move {tile_A}'
     elif move_type == Game.AttackMove:
         game.attack_move(tile_A, tile_B, troops)
-        move = f'Attack Move {tile_A} → {tile_B} with {troops} troops'
+        move_text = f'Attack Move {tile_A} → {tile_B} with {troops} troops'
     elif move_type == Game.TransportMove:
         game.transport_move(tile_A, tile_B, troops)
-        move = f'Transport Move {tile_A} → {tile_B} with {troops} troops'
+        move_text = f'Transport Move {tile_A} → {tile_B} with {troops} troops'
 
     if render:
-        render_map(move, game, game_map, blue_genome, red_genome)
-        print(f'{game.get_round()}.{game.get_player_id()} {move} {player_move}')
+        render_map(move_text, game, game_map, blue_genome, red_genome)
 
-    return player_move
+    my_tiles = game.get_tile_count(player_id)
+    enemy_tiles = game.get_tile_count(enemy_id)
+    fitness = (my_tiles - enemy_tiles)
+
+    return fitness, player_move
 
 
 def render_map(title, game, game_map, blue_genome, red_genome):
@@ -262,7 +281,7 @@ def render_map(title, game, game_map, blue_genome, red_genome):
 
     game_map.render(
         title,
-        f'Round: {round}.{player_id}     Genomes: {blue_id}/{red_id}     Fitness: {blue_fitness}/{red_fitness}'
+        f'Round: {round}.{player_id:}{"":>5}Genomes: {blue_id:^5}/{red_id:^5}{"":>5}Fitness: {blue_fitness:^5}/{red_fitness:^5}'
     )
 
 
