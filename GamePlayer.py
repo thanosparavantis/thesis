@@ -1,8 +1,7 @@
 class GamePlayer:
-    def __init__(self, name: str, tile_color: str, tile_alpha: float) -> None:
+    def __init__(self, name: str, tile_color: str) -> None:
         self._tile_name = name
         self._tile_color = tile_color
-        self._tile_alpha = tile_alpha
         self._total_production = 0
         self._total_attacks = 0
         self._total_attacks_succeeded = 0
@@ -14,9 +13,6 @@ class GamePlayer:
 
     def get_tile_color(self) -> str:
         return self._tile_color
-
-    def get_tile_alpha(self) -> float:
-        return self._tile_alpha
 
     def get_total_production(self) -> int:
         return self._total_production

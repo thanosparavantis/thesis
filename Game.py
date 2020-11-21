@@ -2,7 +2,6 @@ from typing import Tuple, List
 
 import numpy as np
 from numpy import ndarray
-from sklearn import preprocessing
 
 from GamePlayer import GamePlayer
 
@@ -24,7 +23,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    AbandonTile = False
+    MaxRounds = 500
 
     def __init__(self):
         self._players = None
@@ -33,7 +32,6 @@ class Game:
         self._player_id = None
         self._round = None
         self.reset_game()
-        self._scaler = preprocessing.MinMaxScaler()
 
     def get_map_owners(self) -> ndarray:
         return self._map_owners
@@ -42,22 +40,7 @@ class Game:
         return self._map_troops
 
     def reset_game(self) -> None:
-        from GamePlayer import GamePlayer
-
-        self._players = [
-            GamePlayer(name='nature',
-                       tile_color='#CBCBC9',
-                       tile_alpha=0.2),
-
-            GamePlayer(name='blue',
-                       tile_color='#2A8FBD',
-                       tile_alpha=0.5),
-
-            GamePlayer(name='red',
-                       tile_color='#B40406',
-                       tile_alpha=0.5),
-        ]
-
+        self._players = [GamePlayer('nature', '#CBCBC9'), GamePlayer('blue', '#2A8FBD'), GamePlayer('red', '#B40406')]
         self._map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
         self._map_owners[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.BluePlayer
         self._map_owners[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.RedPlayer
@@ -206,14 +189,8 @@ class Game:
         return len(self.get_tiles(player_id))
 
     def get_troop_count(self, player_id: int) -> int:
-        troops = 0
-
-        for i in range(Game.MapWidth):
-            for j in range(Game.MapHeight):
-                if self._map_owners[i, j] == player_id:
-                    troops += self._map_troops[i, j]
-
-        return int(troops)
+        tiles = self.get_tiles(player_id)
+        return np.sum([self.get_tile_troops(tile) for tile in tiles]).item()
 
     def get_tile_troops(self, tile: Tuple[int, int]) -> int:
         return self._map_troops[tile[0], tile[1]].item()
@@ -223,56 +200,81 @@ class Game:
         return [(i, j) for i in range(Game.MapWidth) for j in range(Game.MapHeight)][index]
 
     def get_tiles(self, player_id: int) -> List[Tuple[int, int]]:
-        tiles = []
+        results = np.argwhere(self._map_owners == player_id).tolist()
+        return [tuple(result) for result in results]
 
-        for i in range(Game.MapWidth):
-            for j in range(Game.MapHeight):
-                if self._map_owners[i, j] == player_id:
-                    tiles.append((i, j))
+    @staticmethod
+    def get_tile_adj(tile: Tuple[int, int]) -> List[Tuple[int, int]]:
+        adjacent_options = {
+            (0, 0): [(0, 1), (1, 0)],
+            (0, 1): [(0, 0), (0, 2), (1, 0), (1, 1)],
+            (0, 2): [(0, 1), (1, 1), (1, 2), (0, 3)],
+            (0, 3): [(0, 2), (1, 2), (1, 3), (0, 4)],
+            (0, 4): [(0, 3), (1, 3), (1, 4), (0, 5)],
+            (0, 5): [(0, 4), (1, 4), (1, 5)],
+            (1, 0): [(0, 0), (0, 1), (1, 1), (2, 0), (2, 1)],
+            (1, 1): [(0, 1), (0, 2), (1, 0), (1, 2), (2, 1), (2, 2)],
+            (1, 2): [(0, 2), (0, 3), (1, 1), (1, 3), (2, 2), (2, 3)],
+            (1, 3): [(0, 3), (0, 4), (1, 2), (1, 4), (2, 3), (2, 4)],
+            (1, 4): [(0, 4), (0, 5), (1, 3), (1, 5), (2, 4), (2, 5)],
+            (1, 5): [(0, 5), (1, 4), (2, 5)],
+            (2, 0): [(1, 0), (2, 1), (3, 0)],
+            (2, 1): [(1, 0), (1, 1), (2, 0), (2, 2), (3, 0), (3, 1)],
+            (2, 2): [(1, 1), (1, 2), (2, 1), (2, 3), (3, 1), (3, 2)],
+            (2, 3): [(1, 2), (1, 3), (2, 2), (2, 4), (3, 2), (3, 3)],
+            (2, 4): [(1, 3), (1, 4), (2, 3), (2, 5), (3, 3), (3, 4)],
+            (2, 5): [(1, 4), (1, 5), (2, 4), (3, 4), (3, 5)],
+            (3, 0): [(2, 0), (2, 1), (3, 1), (4, 0), (4, 1)],
+            (3, 1): [(2, 1), (2, 2), (3, 0), (3, 2), (4, 1), (4, 2)],
+            (3, 2): [(2, 2), (2, 3), (3, 1), (3, 3), (4, 2), (4, 3)],
+            (3, 3): [(2, 3), (2, 4), (3, 2), (3, 4), (4, 3), (4, 4)],
+            (3, 4): [(2, 4), (2, 5), (3, 3), (3, 5), (4, 4), (4, 5)],
+            (3, 5): [(2, 5), (3, 4), (4, 5)],
+            (4, 0): [(3, 0), (4, 1), (5, 0)],
+            (4, 1): [(3, 0), (3, 1), (4, 0), (4, 2), (5, 0), (5, 1)],
+            (4, 2): [(3, 1), (3, 2), (4, 1), (4, 3), (5, 1), (5, 2)],
+            (4, 3): [(3, 2), (3, 3), (4, 2), (4, 4), (5, 2), (5, 3)],
+            (4, 4): [(3, 3), (3, 4), (4, 3), (4, 5), (5, 3), (5, 4)],
+            (4, 5): [(3, 4), (3, 5), (4, 4), (5, 4), (5, 5)],
+            (5, 0): [(4, 0), (4, 1), (5, 1)],
+            (5, 1): [(4, 1), (4, 2), (5, 0), (5, 2)],
+            (5, 2): [(4, 2), (4, 3), (5, 1), (5, 3)],
+            (5, 3): [(4, 3), (4, 4), (5, 2), (5, 4)],
+            (5, 4): [(4, 4), (4, 5), (5, 3), (5, 5)],
+            (5, 5): [(4, 5), (5, 4)],
+        }
 
-        return tiles
+        return adjacent_options[tile]
 
-    def get_global_tile_adj(self, player_id: int) -> List[Tuple[int, int]]:
-        adjacent_options = set()
+    def has_ended(self) -> bool:
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        red_tiles = self.get_tile_count(Game.RedPlayer)
 
-        for i in range(Game.MapWidth):
-            for j in range(Game.MapHeight):
-                if self._map_owners[i, j] == player_id:
-                    adjacent_options.add((i - 1, j + 1))
-                    adjacent_options.add((i, j + 1))
-                    adjacent_options.add((i + 1, j + 1))
-                    adjacent_options.add((i - 1, j))
-                    adjacent_options.add((i + 1, j))
-                    adjacent_options.add((i - 1, j - 1))
-                    adjacent_options.add((i, j - 1))
-                    adjacent_options.add((i + 1, j - 1))
+        return self._round >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0
 
-        adjacent_tiles = set()
+    def get_winner(self) -> int:
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        red_tiles = self.get_tile_count(Game.RedPlayer)
 
-        for item in adjacent_options:
-            i, j = item
-            if 0 <= i <= Game.MapWidth - 1 and 0 <= j <= Game.MapHeight - 1 and self._map_owners[i, j] != player_id:
-                adjacent_tiles.add(item)
+        if self._player_id == Game.BluePlayer and red_tiles == 0:
+            return Game.BluePlayer
+        elif self._player_id == Game.RedPlayer and blue_tiles == 0:
+            return Game.RedPlayer
 
-        return list(adjacent_tiles)
+        return Game.NaturePlayer
 
-    def get_tile_adj(self, tile: Tuple[int, int]) -> List[Tuple[int, int]]:
-        adjacent_options = [
-            (tile[0] - 1, tile[1] - 1),
-            (tile[0] - 1, tile[1]),
-            (tile[0] - 1, tile[1] + 1),
-            (tile[0], tile[1] - 1),
-            (tile[0], tile[1] + 1),
-            (tile[0] + 1, tile[1] + 1),
-            (tile[0] + 1, tile[1]),
-            (tile[0] + 1, tile[1] - 1)
-        ]
+    def get_fitness(self):
+        blue_player = self._players[Game.BluePlayer]
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        blue_troops = self.get_troop_count(Game.BluePlayer)
+        red_player = self._players[Game.RedPlayer]
+        red_tiles = self.get_tile_count(Game.RedPlayer)
+        red_troops = self.get_troop_count(Game.RedPlayer)
 
-        adjacent_tiles = []
+        max_tiles = Game.MapSize
+        max_troops = Game.TileTroopMax * Game.MapSize
 
-        for tile in adjacent_options:
-            i, j = tile
-            if 0 <= i <= Game.MapWidth - 1 and 0 <= j <= Game.MapHeight - 1:
-                adjacent_tiles.append(tile)
+        blue_fitness = ((blue_tiles - max_tiles) / max_tiles) + ((blue_troops - max_troops) / max_troops)
+        red_fitness = ((red_tiles - max_tiles) / max_tiles) + ((red_troops - max_troops) / max_troops)
 
-        return adjacent_tiles
+        return float(blue_fitness), float(red_fitness)
