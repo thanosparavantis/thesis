@@ -24,7 +24,6 @@ class GameMap:
         tile_owner_id = self._game.get_tile_owner(tile)
         tile_owner = self._game.get_player(tile_owner_id)
         troops = self._game.get_tile_troops(tile)
-        winner_id = self._game.get_winner()
         tile_alpha = max(0.5, troops / Game.TileTroopMax)
 
         self._axis.add_patch(
@@ -91,10 +90,9 @@ class GameMap:
                 return 'Nobody won the game!'
 
         move_type = self._player_move['move_type']
-        tile_A = self._player_move['tile_A']
-        tile_B = self._player_move['tile_B']
+        tile_A = self._player_move['source_tile']
+        tile_B = self._player_move['target_tile']
         troops = self._player_move['troops']
-        move_text = 'Invalid Move'
 
         if move_type == Game.ProductionMove:
             move_text = f'Production Move {tile_A}'
@@ -102,6 +100,8 @@ class GameMap:
             move_text = f'Attack Move {tile_A} → {tile_B} with {troops} troops'
         elif move_type == Game.TransportMove:
             move_text = f'Transport Move {tile_A} → {tile_B} with {troops} troops'
+        else:
+            move_text = 'Idle Move'
 
         return move_text
 

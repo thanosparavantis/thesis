@@ -1,6 +1,5 @@
-from typing import List, Tuple
-
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -13,7 +12,7 @@ class GameStatistics:
         self._blue_fitness = []
         self._red_fitness = []
         self._figure = None
-        self._axis = None
+        self._axes = None
 
     def add_blue_fitness(self, value):
         self._blue_fitness.append(value)
@@ -23,11 +22,11 @@ class GameStatistics:
 
     def render(self) -> None:
         if self._figure is None:
-            self._figure, self._axis = plt.subplots()  # type: Figure, Axes
+            self._figure, self._axes = plt.subplots()  # type: Figure, Axes
 
-        self._axis.cla()
         plt.ion()
         plt.show()
+        self._axes.cla()
 
         blue_player = self._game.get_player(Game.BluePlayer)
         blue_color = blue_player.get_tile_color()
@@ -37,19 +36,15 @@ class GameStatistics:
         self._figure.suptitle('Game Statistics')
 
         if len(self._blue_fitness):
-            x, y = self.get_graph_data(self._blue_fitness)
-            self._axis.plot(x, y, color=blue_color, alpha=0.8)
-            self._axis.scatter(x, y, marker='.', c=blue_color)
+            y = self._blue_fitness[-50:]
+            x = np.arange(len(y))
+            self._axes.plot(x, y, color=blue_color, alpha=0.8)
+            self._axes.scatter(x, y, marker='.', c=blue_color)
 
         if len(self._red_fitness):
-            x, y = self.get_graph_data(self._red_fitness)
-            self._axis.plot(x, y, color=red_color, alpha=0.8)
-            self._axis.scatter(x, y, marker='.', c=red_color)
+            y = self._red_fitness[-50:]
+            x = np.arange(len(y))
+            self._axes.plot(x, y, color=red_color, alpha=0.8)
+            self._axes.scatter(x, y, marker='.', c=red_color)
 
         plt.pause(0.001)
-
-    def get_graph_data(self, sample_array: List[int]) -> Tuple[List[int], List[int]]:
-        sample_array = sample_array[-100:]
-        x = [i for i in range(len(sample_array))]
-        y = sample_array
-        return x, y

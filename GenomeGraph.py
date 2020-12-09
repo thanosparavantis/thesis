@@ -11,11 +11,11 @@ import StateParser
 
 
 class GenomeGraph:
-    def __init__(self, game: Game, nn_parser: StateParser):
+    def __init__(self, game: Game, state_parser: StateParser):
         self._figure = None
         self._axes = None
         self._game = game
-        self._nn_parser = nn_parser
+        self._state_parser = state_parser
         self._blue_genome = None
         self._red_genome = None
 
@@ -33,25 +33,13 @@ class GenomeGraph:
 
         node_coords = dict()
 
-        state = self._nn_parser.encode_state()
         input_key = -1
         tile = 0
         for i in range(self._game.MapWidth):
             for j in range(self._game.MapHeight):
                 coords = self._game.get_tile_coords(tile)
-                node = Circle(coords, 0.1, color=player.get_tile_color())
+                node = Circle((coords[0] + 1, coords[1] + 1), 0.1, color=player.get_tile_color())
                 axis.add_patch(node)
-
-                axis.text(
-                    x=coords[0],
-                    y=coords[1] + 0.5,
-                    s=state[tile],
-                    color='black',
-                    fontfamily='monospace',
-                    fontsize='medium',
-                    horizontalalignment='center',
-                    verticalalignment='center'
-                )
 
                 node_coords[input_key] = coords
                 input_key -= 1
@@ -77,7 +65,7 @@ class GenomeGraph:
         output_key = 0
         height = 2.5
         for i in range(0, 3):
-            coords = (7 + hidden_columns, height)
+            coords = (8 + hidden_columns, height)
             node = Circle(coords, 0.1, color='green')
             axis.add_patch(node)
             node_coords[output_key] = coords
@@ -99,7 +87,7 @@ class GenomeGraph:
                 color='gray')
 
         axis.set_xticks(range(10 + hidden_columns))
-        axis.set_yticks(range(7))
+        axis.set_yticks(range(8))
 
     def render(self):
         if self._figure is None:
