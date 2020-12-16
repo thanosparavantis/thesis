@@ -3,7 +3,7 @@ from typing import Tuple, List
 import numpy as np
 from numpy import ndarray
 
-from GamePlayer import GamePlayer
+from player import Player
 
 
 class Game:
@@ -18,7 +18,6 @@ class Game:
     TileTroopMin = 1
     TileTroopMax = 20
     StartingTroops = TileTroopMin
-    NatureTroopProbability = 0.1
     IdleMove = -1
     ProductionMove = 0
     AttackMove = 1
@@ -31,8 +30,7 @@ class Game:
         self._map_troops = None
         self._player_id = None
         self._round = None
-        self._blue_added_fitness = 0
-        self._red_added_fitness = 0
+        self._map_troops_prev = None
         self.reset_game()
 
     @staticmethod
@@ -44,14 +42,8 @@ class Game:
         game._round = other_game._round
         return game
 
-    def get_map_owners(self) -> ndarray:
-        return self._map_owners
-
-    def get_map_troops(self) -> ndarray:
-        return self._map_troops
-
     def reset_game(self, first_player_id: int = BluePlayer) -> None:
-        self._players = [GamePlayer('nature', '#CBCBC9'), GamePlayer('blue', '#2A8FBD'), GamePlayer('red', '#B40406')]
+        self._players = [Player('nature', '#CBCBC9'), Player('blue', '#2A8FBD'), Player('red', '#B40406')]
         self._map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
         self._map_owners[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.BluePlayer
         self._map_owners[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.RedPlayer
@@ -59,9 +51,14 @@ class Game:
         self._map_troops[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.StartingTroops
         self._map_troops[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.StartingTroops
         self._player_id = first_player_id
-        self._blue_added_fitness = 0
-        self._red_added_fitness = 0
+        self._map_troops_prev = self._map_troops.copy()
         self.reset_round()
+
+    def get_map_owners(self) -> ndarray:
+        return self._map_owners
+
+    def get_map_troops(self) -> ndarray:
+        return self._map_troops
 
     def change_player_id(self) -> None:
         self._player_id = Game.RedPlayer if self._player_id == Game.BluePlayer else Game.BluePlayer
@@ -75,7 +72,7 @@ class Game:
     def get_enemy_id(self) -> int:
         return Game.BluePlayer if self._player_id == Game.RedPlayer else Game.RedPlayer
 
-    def get_player(self, player_id: int) -> GamePlayer:
+    def get_player(self, player_id: int) -> Player:
         return self._players[player_id]
 
     def get_round(self) -> int:
@@ -86,12 +83,7 @@ class Game:
 
     def increase_round(self) -> None:
         self._round += 1
-
-    def set_blue_added_fitness(self, added_fitness: int) -> None:
-        self._blue_added_fitness = added_fitness
-
-    def set_red_added_fitness(self, added_fitness: int) -> None:
-        self._red_added_fitness = added_fitness
+        self._map_troops_prev = self._map_troops.copy()
 
     def production_move(self, source_tile: Tuple[int, int]) -> None:
         s_i, s_j = source_tile
@@ -274,7 +266,7 @@ class Game:
         blue_tiles = self.get_tile_count(Game.BluePlayer)
         red_tiles = self.get_tile_count(Game.RedPlayer)
 
-        return self._round >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0
+        return self._round >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0 or np.array_equal(self._map_troops, self._map_troops_prev)
 
     def get_winner(self) -> int:
         blue_tiles = self.get_tile_count(Game.BluePlayer)
@@ -288,38 +280,14 @@ class Game:
         return Game.NaturePlayer
 
     def get_fitness(self):
-        blue_tiles = self.get_tiles(Game.BluePlayer)
-        blue_tile_count = len(blue_tiles)
+        blue_tile_count = self.get_tile_count(Game.BluePlayer)
         blue_troop_count = self.get_troop_count(Game.BluePlayer)
-        red_tiles = self.get_tiles(Game.RedPlayer)
-        red_tile_count = len(red_tiles)
+        red_tile_count = self.get_tile_count(Game.RedPlayer)
         red_troop_count = self.get_troop_count(Game.RedPlayer)
-        max_tile_count = Game.MapSize
-        max_troop_count = Game.TileTroopMax * Game.MapSize
-        blue_player = self.get_player(Game.BluePlayer)
-        red_player = self.get_player(Game.RedPlayer)
+        blue_player = self._players[Game.BluePlayer]  # type: Player
+        red_player = self._players[Game.RedPlayer]  # type: Player
 
-        blue_fitness = 0
-        red_fitness = 0
+        blue_fitness = blue_tile_count
+        red_fitness = red_tile_count
 
-        # blue_fitness = blue_player.get_total_attacks_succeeded()
-        blue_fitness += blue_tile_count - max_tile_count
-        blue_fitness += blue_troop_count - max_troop_count
-        # blue_fitness += 1.0 * (blue_tile_count / max_tile_count)
-        # blue_fitness += 0.3 * (blue_troop_count / max_troop_count)
-        # blue_fitness += self._blue_added_fitness
-        # blue_fitness += blue_player.get_total_production()
-        # blue_fitness += blue_player.get_total_attacks()
-        # blue_fitness += blue_player.get_total_transports()
-
-        # red_fitness = red_player.get_total_attacks_succeeded()
-        red_fitness += red_tile_count - max_tile_count
-        red_fitness += red_troop_count - max_troop_count
-        # red_fitness += 1.0 * (red_tile_count / max_tile_count)
-        # red_fitness += 0.3 * (red_troop_count / max_troop_count)
-        # red_fitness += self._red_added_fitness
-        # red_fitness += red_player.get_total_production()
-        # red_fitness += red_player.get_total_attacks()
-        # red_fitness += red_player.get_total_transports()
-
-        return float(blue_fitness), float(red_fitness)
+        return blue_fitness, red_fitness

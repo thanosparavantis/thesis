@@ -3,15 +3,14 @@ import math
 import matplotlib.pyplot as plt
 import neat
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
-import Game
-import StateParser
+import game
+from state_parser import StateParser
 
 
 class GenomeGraph:
-    def __init__(self, game: Game, state_parser: StateParser):
+    def __init__(self, game: game, state_parser: StateParser):
         self._figure = None
         self._axes = None
         self._game = game

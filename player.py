@@ -1,4 +1,4 @@
-class GamePlayer:
+class Player:
     def __init__(self, name: str, tile_color: str) -> None:
         self._tile_name = name
         self._tile_color = tile_color

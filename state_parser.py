@@ -1,9 +1,6 @@
-import math
 from typing import List, Dict, Tuple
 
-from numpy import ndarray
-
-from Game import Game
+from game import Game
 
 
 class StateParser:
@@ -195,7 +192,7 @@ class StateParser:
     # =========================================================
     # Source, Target, Tile Decoding
     # =========================================================
-    def decode_state(self, output: list) -> (Dict, float):
+    def decode_state(self, output: list) -> Dict:
         prod_flag = True if output[0] <= 0.5 else False
 
         lb = 0
@@ -234,9 +231,21 @@ class StateParser:
             lb = ub
             idx += 1
 
-        prod_valid = self._game.is_production_move_valid(source_tile)
-        att_valid = self._game.is_attack_move_valid(source_tile, target_tile, troops)
-        trans_valid = self._game.is_transport_move_valid(source_tile, target_tile, troops)
+        prod_valid = self._game.is_production_move_valid(
+            source_tile
+        )
+
+        att_valid = self._game.is_attack_move_valid(
+            source_tile,
+            target_tile,
+            troops
+        )
+
+        trans_valid = self._game.is_transport_move_valid(
+            source_tile,
+            target_tile,
+            troops
+        )
 
         if prod_flag and prod_valid:
             move_type = Game.ProductionMove
@@ -254,7 +263,7 @@ class StateParser:
             'troops': troops,
         }
 
-        return player_move, 0.0
+        return player_move
 
     # =========================================================
     # Possible Source, Target, Tile Decoding

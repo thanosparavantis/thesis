@@ -28,10 +28,10 @@
     compatibility_weight_coefficient    = 1.0
 
     enabled_default                     = True
-    enabled_mutate_rate                 = 0.001
+    enabled_mutate_rate                 = 0.1
 
     feed_forward                        = True
-    initial_connection                  = full
+    initial_connection                  = unconnected
 
     node_add_prob                       = 0.3
     node_delete_prob                    = 0.3

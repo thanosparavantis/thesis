@@ -6,8 +6,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import RegularPolygon
 
-import StateParser
-from Game import Game
+from state_parser import StateParser
+from game import Game
 
 
 class GameMap:
@@ -112,14 +112,13 @@ class GameMap:
         if self._blue_genome is not None and self._red_genome is not None:
             blue_id = self._blue_genome.key
             red_id = self._red_genome.key
-            blue_fitness, red_fitness = self._game.get_fitness()
         else:
             blue_id = '-'
             red_id = '-'
-            blue_fitness = '-'
-            red_fitness = '-'
 
-        return f'Round: {g_round}.{player_id:}{"":>5}Genomes: {blue_id:^5}/{red_id:^5}{"":>5}Fitness: {blue_fitness:^8.4}/{red_fitness:^8.4}'
+        blue_fitness, red_fitness = self._game.get_fitness()
+
+        return f'{blue_id:^6}/{red_id:^6}{"":>5}{g_round}.{player_id:}{"":>5}{blue_fitness:^6}/{red_fitness:^6}'
 
     def render(self, title: str = None, subtitle: str = None) -> None:
         title = title or self._create_title()

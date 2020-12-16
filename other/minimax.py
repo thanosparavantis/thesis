@@ -1,9 +1,9 @@
 import math
 import random
 
-from Game import Game
-from GameMap import GameMap
-from StateParser import StateParser
+from game import Game
+from game_map import GameMap
+from state_parser import StateParser
 
 
 def main():

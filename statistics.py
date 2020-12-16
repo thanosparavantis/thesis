@@ -3,10 +3,10 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from Game import Game
+from game import Game
 
 
-class GameStatistics:
+class Statistics:
     def __init__(self, game: Game):
         self._game = game
         self._blue_fitness = []
