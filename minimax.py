@@ -1,83 +1,102 @@
 import math
 import random
+import signal
+import time
 
 from game import Game
 from game_map import GameMap
 from state_parser import StateParser
+from zobrist_hashing import ZobristHashing
 
 
 def main():
+    zobrist = ZobristHashing()
+
+    signal.signal(signal.SIGINT, lambda sig, frame: zobrist.save_data())
+
     game = Game()
     state_parser = StateParser(game)
     game_map = GameMap(game, state_parser)
-
     game_map.render()
+
+    moves = []
 
     while not game.has_ended():
-        next_moves = get_next_moves(game)
-        random.shuffle(next_moves)
         maximizing_player = True if game.get_player_id() == Game.BluePlayer else False
-        next_move, evaluation = minimax(game, 3, maximizing_player)
+        next_move, evaluation = minimax(game, zobrist, 1, maximizing_player)
+        moves.append(next_move)
         apply_move(game, next_move)
+
         game_map.set_player_move(next_move)
         game_map.render()
+
         game.change_player_id()
 
-    game_map.render()
+        if game.get_player_id() == Game.BluePlayer:
+            game.increase_round()
 
 
-def minimax(game, depth, maximizing_player, alpha=-math.inf, beta=math.inf):
+def minimax(game, zobrist, depth, maximizing_player, alpha=-math.inf, beta=math.inf):
     if depth == 0 or game.has_ended():
-        fitness = get_fitness(game)
+        blue_fitness, red_fitness = game.get_fitness()
+        fitness = blue_fitness - red_fitness
         return None, fitness
 
     if maximizing_player:
-        maxEval = -math.inf
-        best_move = None
+        max_eval = -math.inf
+        blue_move = None
 
         for move in get_next_moves(game):
-            undo_move = Game.copy_of(game)
-            apply_move(game, move)
-            game.set_player_id(Game.RedPlayer)
-            next_move, evaluation = minimax(game, depth - 1, False, alpha, beta)
-            game = undo_move
+            temp_game = apply_temp_move(game, Game.RedPlayer, move)
+            game_hash = zobrist.get_game_hash(temp_game)
 
-            if maxEval < evaluation:
-                maxEval = max(maxEval, evaluation)
-                best_move = next_move
+            if zobrist.has_data(game_hash):
+                evaluation = zobrist.get_data(game_hash)
+            else:
+                next_move, evaluation = minimax(temp_game, zobrist, depth - 1, False, alpha, beta)
+                zobrist.store_data(game_hash, evaluation)
+
+            if max_eval < evaluation:
+                max_eval = max(max_eval, evaluation)
+                blue_move = move
 
             alpha = max(alpha, evaluation)
 
             if beta <= alpha:
                 break
 
-        return best_move, maxEval
+        return blue_move, max_eval
     else:
-        minEval = math.inf
-        best_move = None
+        min_eval = math.inf
+        red_move = None
 
         for move in get_next_moves(game):
-            undo_move = Game.copy_of(game)
-            apply_move(game, move)
-            game.set_player_id(Game.BluePlayer)
-            next_move, evaluation = minimax(game, depth - 1, True, alpha, beta)
-            game = undo_move
+            temp_game = apply_temp_move(game, Game.BluePlayer, move)
+            game_hash = zobrist.get_game_hash(temp_game)
 
-            if minEval > evaluation:
-                minEval = min(minEval, evaluation)
-                best_move = move
+            if zobrist.has_data(game_hash):
+                evaluation = zobrist.get_data(game_hash)
+            else:
+                next_move, evaluation = minimax(temp_game, zobrist, depth - 1, True, alpha, beta)
+                zobrist.store_data(game_hash, evaluation)
+
+            if min_eval > evaluation:
+                min_eval = min(min_eval, evaluation)
+                red_move = move
 
             beta = min(beta, evaluation)
 
             if beta <= alpha:
                 break
 
-        return best_move, minEval
+        return red_move, min_eval
 
 
-def apply_temp_move(game, move):
+def apply_temp_move(game, player_id, move):
     temp_game = Game.copy_of(game)
-    return apply_move(temp_game, move)
+    apply_move(temp_game, move)
+    temp_game.set_player_id(player_id)
+    return temp_game
 
 
 def apply_move(game, move):
@@ -92,17 +111,6 @@ def apply_move(game, move):
         game.attack_move(source_tile, target_tile, troops)
     elif move_type == Game.TransportMove:
         game.transport_move(source_tile, target_tile, troops)
-
-    return game
-
-
-def get_fitness(game):
-    blue_tile_count = game.get_tile_count(Game.BluePlayer)
-    red_tile_count = game.get_tile_count(Game.RedPlayer)
-    blue_troop_count = game.get_troop_count(Game.BluePlayer)
-    red_troop_count = game.get_troop_count(Game.RedPlayer)
-
-    return ((blue_tile_count - red_tile_count) / Game.MapSize) + ((blue_troop_count - red_troop_count) / (Game.MapSize * Game.TileTroopMax))
 
 
 def get_next_moves(game: Game):
@@ -142,6 +150,7 @@ def get_next_moves(game: Game):
                         'troops': troops,
                     })
 
+    random.shuffle(next_states)
     return next_states
 
 

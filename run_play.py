@@ -7,7 +7,7 @@ from shared import print_signature, pop_setup, evaluate_fitness, assign_fitness,
 
 
 def main():
-    print_signature()
+    print_signature("Play Script")
 
     game = Game()
     state_parser = StateParser(game)

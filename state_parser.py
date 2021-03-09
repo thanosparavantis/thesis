@@ -1,3 +1,6 @@
+import math
+import random
+import sys
 from typing import List, Dict, Tuple
 
 from game import Game
@@ -193,10 +196,12 @@ class StateParser:
     # Source, Target, Tile Decoding
     # =========================================================
     def decode_state(self, output: list) -> Dict:
+        player_id = self._game.get_player_id()
+
         prod_flag = True if output[0] <= 0.5 else False
 
         lb = 0
-        step = 1 / Game.MapSize
+        step = 1 / (Game.MapSize - 1)
         idx = 0
         source_tile = 0
 
@@ -208,7 +213,7 @@ class StateParser:
             idx += 1
 
         lb = 0
-        step = 1 / Game.MapSize
+        step = 1 / (Game.MapSize - 1)
         idx = 0
         target_tile = 0
 
@@ -247,6 +252,8 @@ class StateParser:
             troops
         )
 
+        player = self._game.get_player(player_id)
+
         if prod_flag and prod_valid:
             move_type = Game.ProductionMove
         elif att_valid:
@@ -263,7 +270,67 @@ class StateParser:
             'troops': troops,
         }
 
+        if move_type != Game.IdleMove:
+            player.award()
+        else:
+            player.penalize()
+
         return player_move
+
+        # moves = []
+        # tiles = self._game.get_tiles(player_id)
+        #
+        # for tile in tiles:
+        #     if self._game.is_production_move_valid(tile):
+        #         moves.append({
+        #             'move_type': Game.ProductionMove,
+        #             'source_tile': tile,
+        #             'target_tile': tile,
+        #             'troops': 1,
+        #         })
+        #
+        #     max_troops = self._game.get_tile_troops(tile)
+        #
+        #     for tile_adj in self._game.get_tile_adj(tile):
+        #         for troops in range(Game.TileTroopMin, max_troops + 1):
+        #             if self._game.is_attack_move_valid(tile, tile_adj, troops):
+        #                 moves.append({
+        #                     'move_type': Game.AttackMove,
+        #                     'source_tile': tile,
+        #                     'target_tile': tile_adj,
+        #                     'troops': troops,
+        #                 })
+        #
+        #             if self._game.is_transport_move_valid(tile, tile_adj, troops):
+        #                 moves.append({
+        #                     'move_type': Game.TransportMove,
+        #                     'source_tile': tile,
+        #                     'target_tile': tile_adj,
+        #                     'troops': troops,
+        #                 })
+        #
+        # random.shuffle(moves)
+        #
+        # best_move = None
+        # distance = sys.maxsize
+        #
+        # for possible_move in moves:
+        #     source_1 = self._game.get_tile_number(player_move['source_tile'])
+        #     target_1 = self._game.get_tile_number(player_move['target_tile'])
+        #     troops_1 = player_move['troops']
+        #     source_2 = self._game.get_tile_number(possible_move['source_tile'])
+        #     target_2 = self._game.get_tile_number(possible_move['target_tile'])
+        #     troops_2 = possible_move['troops']
+        #
+        #     calc_distance = math.sqrt(
+        #         math.pow(source_1 - source_2, 2) + math.pow(target_1 - target_2, 2) + math.pow(troops_1 - troops_2, 2)
+        #     )
+        #
+        #     if calc_distance < distance:
+        #         best_move = possible_move
+        #         distance = calc_distance
+        #
+        # return best_move
 
     # =========================================================
     # Possible Source, Target, Tile Decoding
@@ -322,63 +389,63 @@ class StateParser:
     #
     #     return player_move
 
-    @staticmethod
-    def _get_move_options() -> List:
-        move_options = []
+    # @staticmethod
+    # def _get_move_options() -> List:
+    #     move_options = []
+    #
+    #     for i in range(Game.MapWidth):
+    #         for j in range(Game.MapHeight):
+    #             tile = (i, j)
+    #
+    #             move_options.append({
+    #                 'move_type': Game.ProductionMove,
+    #                 'source_tile': tile,
+    #                 'target_tile': None,
+    #                 'troops': None
+    #             })
+    #
+    #             tiles_adj = Game.get_tile_adj(tile)
+    #
+    #             for tile_adj in tiles_adj:
+    #                 for troops in range(Game.TileTroopMin, Game.TileTroopMax + 1):
+    #                     move_options.append({
+    #                         'move_type': Game.AttackMove,
+    #                         'source_tile': tile,
+    #                         'target_tile': tile_adj,
+    #                         'troops': troops
+    #                     })
+    #
+    #                     move_options.append({
+    #                         'move_type': Game.TransportMove,
+    #                         'source_tile': tile,
+    #                         'target_tile': tile_adj,
+    #                         'troops': troops
+    #                     })
+    #
+    #     return move_options
 
-        for i in range(Game.MapWidth):
-            for j in range(Game.MapHeight):
-                tile = (i, j)
-
-                move_options.append({
-                    'move_type': Game.ProductionMove,
-                    'source_tile': tile,
-                    'target_tile': None,
-                    'troops': None
-                })
-
-                tiles_adj = Game.get_tile_adj(tile)
-
-                for tile_adj in tiles_adj:
-                    for troops in range(Game.TileTroopMin, Game.TileTroopMax + 1):
-                        move_options.append({
-                            'move_type': Game.AttackMove,
-                            'source_tile': tile,
-                            'target_tile': tile_adj,
-                            'troops': troops
-                        })
-
-                        move_options.append({
-                            'move_type': Game.TransportMove,
-                            'source_tile': tile,
-                            'target_tile': tile_adj,
-                            'troops': troops
-                        })
-
-        return move_options
-
-    def _selectable_source_tiles(self, tile: Tuple[int, int]) -> bool:
-        troops = self._game.get_tile_troops(tile)
-
-        if troops < Game.TileTroopMax:
-            return True
-
-        player_id = self._game.get_player_id()
-        tiles_adj = self._game.get_tile_adj(tile)
-        blocked = 0
-
-        for tile_adj in tiles_adj:
-            troops_adj = self._game.get_tile_troops(tile_adj)
-            neighbour_id = self._game.get_tile_owner(tile_adj)
-
-            if neighbour_id == player_id and troops_adj == Game.TileTroopMax:
-                blocked += 1
-
-        return blocked != len(tiles_adj)
-
-    def _selectable_target_tiles(self, tile: Tuple[int, int]) -> bool:
-        player_id = self._game.get_player_id()
-        owner_id = self._game.get_tile_owner(tile)
-        troops = self._game.get_tile_troops(tile)
-
-        return player_id != owner_id or troops != Game.TileTroopMax
+    # def _selectable_source_tiles(self, tile: Tuple[int, int]) -> bool:
+    #     troops = self._game.get_tile_troops(tile)
+    #
+    #     if troops < Game.TileTroopMax:
+    #         return True
+    #
+    #     player_id = self._game.get_player_id()
+    #     tiles_adj = self._game.get_tile_adj(tile)
+    #     blocked = 0
+    #
+    #     for tile_adj in tiles_adj:
+    #         troops_adj = self._game.get_tile_troops(tile_adj)
+    #         neighbour_id = self._game.get_tile_owner(tile_adj)
+    #
+    #         if neighbour_id == player_id and troops_adj == Game.TileTroopMax:
+    #             blocked += 1
+    #
+    #     return blocked != len(tiles_adj)
+    #
+    # def _selectable_target_tiles(self, tile: Tuple[int, int]) -> bool:
+    #     player_id = self._game.get_player_id()
+    #     owner_id = self._game.get_tile_owner(tile)
+    #     troops = self._game.get_tile_troops(tile)
+    #
+    #     return player_id != owner_id or troops != Game.TileTroopMax

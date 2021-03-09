@@ -1,13 +1,12 @@
 from typing import Tuple
 
 import matplotlib.pyplot as plt
-import neat
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import RegularPolygon
 
-from state_parser import StateParser
 from game import Game
+from state_parser import StateParser
 
 
 class GameMap:
@@ -16,8 +15,8 @@ class GameMap:
         self._state_parser = state_parser
         self._figure = None
         self._axis = None
-        self._blue_genome = None
-        self._red_genome = None
+        self._blue_player = 'Blue'
+        self._red_player = 'Red'
         self._player_move = None
 
     def _render_tile(self, tile: Tuple[int, int], poly_xy: Tuple[float, float], encoded_value: float):
@@ -68,9 +67,9 @@ class GameMap:
             verticalalignment='center'
         )
 
-    def set_genomes(self, blue_genome: neat.DefaultGenome, red_genome: neat.DefaultGenome):
-        self._blue_genome = blue_genome
-        self._red_genome = red_genome
+    def set_players(self, blue_player: str, red_player: str):
+        self._blue_player = blue_player
+        self._red_player = red_player
 
     def set_player_move(self, player_move: dict):
         self._player_move = player_move
@@ -106,19 +105,13 @@ class GameMap:
         return move_text
 
     def _create_subtitle(self):
-        g_round = self._game.get_round()
+        rounds = self._game.get_round()
         player_id = self._game.get_player_id()
-
-        if self._blue_genome is not None and self._red_genome is not None:
-            blue_id = self._blue_genome.key
-            red_id = self._red_genome.key
-        else:
-            blue_id = '-'
-            red_id = '-'
-
         blue_fitness, red_fitness = self._game.get_fitness()
+        blue_fitness = int(blue_fitness)
+        red_fitness = int(red_fitness)
 
-        return f'{blue_id:^6}/{red_id:^6}{"":>5}{g_round}.{player_id:}{"":>5}{blue_fitness:^6}/{red_fitness:^6}'
+        return f'{self._blue_player:^10}/{self._red_player:^10}{"":>5}{rounds}.{player_id:}{"":>5}{blue_fitness:^10}/{red_fitness:^10}'
 
     def render(self, title: str = None, subtitle: str = None) -> None:
         title = title or self._create_title()
