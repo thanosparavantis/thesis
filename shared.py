@@ -56,8 +56,10 @@ def evaluate_fitness(
         config: Config,
         state_parser: StateParser,
         game: Game,
-        game_map: GameMap
+        game_map: GameMap,
+        generation: int
 ) -> Tuple[Dict[int, float], Dict[int, float]]:
+    game_map.generation = generation
     blue_fitness_dict = defaultdict(list)
     red_fitness_dict = defaultdict(list)
 
@@ -65,9 +67,10 @@ def evaluate_fitness(
 
     for blue_id, blue_genome in blue_genomes.items():
         for red_id, red_genome in red_genomes.items():
-            play_game(blue_genome, red_genome, config, state_parser, game, game_map, False)
+            play_game(blue_genome, red_genome, config, state_parser, game, game_map)
 
             blue_fitness, red_fitness = game.get_fitness()
+
             rounds = game.get_round()
             blue_tiles = game.get_tile_count(Game.BluePlayer)
             red_tiles = game.get_tile_count(Game.RedPlayer)
@@ -88,7 +91,7 @@ def evaluate_fitness(
                 f'{"":3}'
                 f'Tiles:{blue_tiles:>3} / {red_tiles:<3}'
                 f'{"":3}'
-                f'Fitness:{blue_fitness:>6.1f} / {red_fitness:<6.1f}'
+                f'Fitness:{blue_fitness:>4.0f} / {red_fitness:<4.0f}'
                 f'{"":3}'
                 f'Status:{game_status:^10}'
             )
@@ -102,11 +105,9 @@ def evaluate_fitness(
     red_fitness_best = dict()
 
     for blue_id, fitness_per_game in blue_fitness_dict.items():
-        # blue_fitness_best[blue_id] = max(fitness_per_game)
         blue_fitness_best[blue_id] = sum(fitness_per_game) / len(fitness_per_game)
 
     for red_id, fitness_per_game in red_fitness_dict.items():
-        # red_fitness_best[red_id] = max(fitness_per_game)
         red_fitness_best[red_id] = sum(fitness_per_game) / len(fitness_per_game)
 
     return blue_fitness_best, red_fitness_best
@@ -130,13 +131,17 @@ def play_game(
         render: bool = False
 ) -> None:
     game.reset_game()
-    game_map.set_players(f'Blue {blue_genome.key}', f'Red {red_genome.key}')
+    game_map.blue_id = blue_genome.key
+    game_map.red_id = red_genome.key
 
     if render:
-        game_map.render()
+        # game_map.render()
+        game_map.save()
 
     blue_net = FeedForwardNetwork.create(blue_genome, config)
     red_net = FeedForwardNetwork.create(red_genome, config)
+
+    game.increase_round()
 
     while True:
         game.set_player_id(Game.BluePlayer)
@@ -153,8 +158,6 @@ def play_game(
 
         game.increase_round()
 
-    print('\r', end='')
-
 
 def play_move(
         blue_net: FeedForwardNetwork,
@@ -169,7 +172,6 @@ def play_move(
     net = blue_net if player_id == Game.BluePlayer else red_net
     net_out = net.activate(state_parser.encode_state())
     player_move = state_parser.decode_state(net_out)
-    rounds = game.get_round()
 
     move_type = player_move['move_type']
     source_tile = player_move['source_tile']
@@ -178,17 +180,18 @@ def play_move(
 
     if move_type == Game.ProductionMove:
         game.production_move(source_tile)
-        print(f'\r{rounds}.{player_id} Production Move {source_tile}', end='')
     elif move_type == Game.AttackMove:
         game.attack_move(source_tile, target_tile, troops)
-        print(f'\r{rounds}.{player_id} Attack Move {source_tile} -> {target_tile} with {troops} troops', end='')
     elif move_type == Game.TransportMove:
         game.transport_move(source_tile, target_tile, troops)
-        print(f'\r{rounds}.{player_id} Transport Move {source_tile} -> {target_tile} with {troops} troops', end='')
+
+    player.move_history.append(player_move)
+    player.tile_history.append(game.get_tile_count(player_id))
+    player.troop_history.append(game.get_troop_count(player_id))
 
     game.save_state()
-    player.add_move(player_move)
-    game_map.set_player_move(player_move)
+    game_map.player_move = player_move
 
     if render:
-        game_map.render()
+        # game_map.render()
+        game_map.save(render=False)
