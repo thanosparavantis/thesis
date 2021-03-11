@@ -1,5 +1,6 @@
 import glob
 import os
+import secrets
 from collections import defaultdict
 from queue import Queue
 from threading import Thread, Lock
@@ -46,6 +47,11 @@ def pop_setup(name, neat_config) -> Population:
     return pop
 
 
+def assign_fitness(genomes: List[Tuple[int, DefaultGenome]], fitness_mapping: Dict[int, float]) -> None:
+    for genome_id, genome in genomes:
+        genome.fitness = fitness_mapping[genome.key]
+
+
 def evaluate_fitness(blue_genomes: Dict[int, DefaultGenome], red_genomes: Dict[int, DefaultGenome], config: Config) -> Tuple[Dict[int, float], Dict[int, float]]:
     queue = Queue()
     threads = []
@@ -55,18 +61,41 @@ def evaluate_fitness(blue_genomes: Dict[int, DefaultGenome], red_genomes: Dict[i
 
     blue_genomes = list(blue_genomes.values())
     red_genomes = list(red_genomes.values())
+    team_one = None
+    team_one_name = None
+    team_two = None
+    team_two_name = None
+    opponents = []
 
-    if len(blue_genomes) != len(red_genomes):
-        raise Exception("The number of blue genomes is not equal to the number of red genomes.")
+    if len(blue_genomes) > len(red_genomes):
+        team_one = blue_genomes
+        team_one_name = 'B'
+        team_two = red_genomes
+        team_two_name = 'R'
+    elif len(blue_genomes) < len(red_genomes):
+        team_one = red_genomes
+        team_one_name = 'R'
+        team_two = blue_genomes
+        team_two_name = 'B'
+    else:
+        team_one = blue_genomes
+        team_one_name = 'B'
+        team_two = red_genomes
+        team_two_name = 'R'
 
-    games_max = len(blue_genomes)
+    if len(team_one) != len(team_two):
+        for idx in range(len(team_two)):
+            opponents.append((team_one[idx], team_two[idx]))
 
-    for index in range(games_max):
-        blue_genome = blue_genomes[index]
-        red_genome = red_genomes[index]
+        for idx in range(len(red_genomes), len(blue_genomes)):
+            opponents.append((team_one[idx], secrets.choice(team_two)))
+    else:
+        for idx in range(len(team_one)):
+            opponents.append((team_one[idx], team_two[idx]))
 
+    for blue_genome, red_genome in opponents:
         thread = Thread(
-            name=f'B{blue_genome.key}R{red_genome.key}',
+            name=f'{team_one_name}{blue_genome.key}{team_two_name}{red_genome.key}',
             target=process_game,
             daemon=True,
             args=[queue, print_lock, blue_genome, red_genome, config]
@@ -130,11 +159,6 @@ def process_game(queue: Queue, print_lock: Lock, blue_genome: DefaultGenome, red
         'red_id': red_id,
         'red_fitness': red_fitness
     })
-
-
-def assign_fitness(genomes: List[Tuple[int, DefaultGenome]], fitness_mapping: Dict[int, float]) -> None:
-    for genome_id, genome in genomes:
-        genome.fitness = fitness_mapping[genome.key]
 
 
 def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, game: Game, render: bool) -> None:

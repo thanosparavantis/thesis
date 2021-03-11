@@ -71,8 +71,9 @@ class StateParser:
 
         moves = []
         player_id = self.game.get_player_id()
+        tiles = self.game.get_tiles(player_id)
 
-        for tile in self.game.get_tiles(player_id):
+        for tile in tiles:
             if self.game.is_production_move_valid(tile):
                 moves.append({
                     'move_type': Game.ProductionMove,
@@ -100,6 +101,9 @@ class StateParser:
                             'target_tile': tile_adj,
                             'troops': troops
                         })
+
+        if len(moves) == 0:
+            return
 
         random.shuffle(moves)
         return moves

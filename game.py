@@ -3,9 +3,7 @@ from typing import Tuple, List
 import numpy as np
 from numpy import ndarray
 
-from game_map import GameMap
 from game_player import GamePlayer
-from state_parser import StateParser
 
 
 class Game:
@@ -24,12 +22,11 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 500
-
-    state_parser = StateParser()
-    game_map = GameMap()
+    MaxRounds = 100
 
     def __init__(self):
+        self.state_parser = None
+        self.game_map = None
         self.players = None
         self.map_owners = None
         self.map_troops = None
@@ -48,6 +45,11 @@ class Game:
         return game
 
     def reset_game(self, first_player_id: int = BluePlayer) -> None:
+        from state_parser import StateParser
+        from game_map import GameMap
+
+        self.state_parser = StateParser()
+        self.game_map = GameMap()
         self.state_parser.game = self
         self.game_map.game = self
         self.game_map.state_parser = self.state_parser
@@ -314,10 +316,10 @@ class Game:
         tile_count = self.get_tile_count(player_id)
         troop_count = self.get_troop_count(player_id)
 
-        tile_component = (tile_count / Game.MapSize) * 40
-        troop_component = (troop_count / (Game.MapSize * Game.TileTroopMax)) * 10
-        round_component = (abs((rounds - Game.MaxRounds)) / Game.MaxRounds) * 50
+        tile_component = (tile_count / Game.MapSize) * 50
+        # troop_component = (troop_count / (Game.MapSize * Game.TileTroopMax)) * 20
+        # round_component = (abs((rounds - Game.MaxRounds)) / Game.MaxRounds) * 50
         winner_component = 50 if self.get_winner() == player_id else 0
-        fitness = winner_component + round_component
+        fitness = tile_component + winner_component
 
         return fitness
