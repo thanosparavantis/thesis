@@ -3,7 +3,9 @@ from typing import Tuple, List
 import numpy as np
 from numpy import ndarray
 
-from player import Player
+from game_map import GameMap
+from game_player import GamePlayer
+from state_parser import StateParser
 
 
 class Game:
@@ -24,6 +26,9 @@ class Game:
     TransportMove = 2
     MaxRounds = 500
 
+    state_parser = StateParser()
+    game_map = GameMap()
+
     def __init__(self):
         self.players = None
         self.map_owners = None
@@ -43,7 +48,10 @@ class Game:
         return game
 
     def reset_game(self, first_player_id: int = BluePlayer) -> None:
-        self.players = [Player('nature', '#CBCBC9'), Player('blue', '#2A8FBD'), Player('red', '#B40406')]
+        self.state_parser.game = self
+        self.game_map.game = self
+        self.game_map.state_parser = self.state_parser
+        self.players = [GamePlayer('nature', '#CBCBC9'), GamePlayer('blue', '#2A8FBD'), GamePlayer('red', '#B40406')]
         self.map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
         self.map_owners[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.BluePlayer
         self.map_owners[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.RedPlayer
@@ -92,7 +100,7 @@ class Game:
     def get_enemy_id(self) -> int:
         return Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
 
-    def get_player(self, player_id: int) -> Player:
+    def get_player(self, player_id: int) -> GamePlayer:
         return self.players[player_id]
 
     def get_round(self) -> int:
@@ -302,8 +310,14 @@ class Game:
         return self.get_player_fitness(Game.BluePlayer), self.get_player_fitness(Game.RedPlayer)
 
     def get_player_fitness(self, player_id: int) -> float:
-        player = self.get_player(player_id)
+        rounds = self.get_round()
         tile_count = self.get_tile_count(player_id)
         troop_count = self.get_troop_count(player_id)
 
-        return ((tile_count / Game.MapSize) * 70) + ((troop_count / (Game.MapSize * Game.TileTroopMax)) * 30)
+        tile_component = (tile_count / Game.MapSize) * 40
+        troop_component = (troop_count / (Game.MapSize * Game.TileTroopMax)) * 10
+        round_component = (abs((rounds - Game.MaxRounds)) / Game.MaxRounds) * 50
+        winner_component = 50 if self.get_winner() == player_id else 0
+        fitness = winner_component + round_component
+
+        return fitness

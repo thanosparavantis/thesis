@@ -1,17 +1,16 @@
 import math
 import random
 import sys
-import time
 from typing import List, Dict, Tuple
-
-from game import Game
 
 
 class StateParser:
-    def __init__(self, game: Game):
-        self.game = game
+    def __init__(self):
+        self.game = None
 
     def encode_state(self) -> List[int]:
+        from game import Game
+
         inputs = []
 
         for i in range(Game.MapWidth):
@@ -34,6 +33,8 @@ class StateParser:
         return number <= 0.5
 
     def decode_tile(self, number: float) -> Tuple[int, int]:
+        from game import Game
+
         lb = 0
         step = 1 / (Game.MapSize - 1)
         idx = 0
@@ -49,6 +50,8 @@ class StateParser:
         return tile
 
     def decode_troops(self, number: float) -> int:
+        from game import Game
+
         lb = 0
         step = 1 / Game.TileTroopMax
         idx = 1
@@ -64,6 +67,8 @@ class StateParser:
         return troops
 
     def get_next_moves(self) -> List[Dict]:
+        from game import Game
+
         moves = []
         player_id = self.game.get_player_id()
 
@@ -129,6 +134,8 @@ class StateParser:
         return player_move
 
     def decode_state(self, output: list) -> Dict:
+        from game import Game
+
         prod_flag = self.decode_prod_flag(output[0])
         source_tile = self.decode_tile(output[1])
 
