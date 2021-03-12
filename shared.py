@@ -1,8 +1,5 @@
 import glob
 import os
-import secrets
-from collections import defaultdict
-from queue import Queue
 from threading import Thread, Lock
 from typing import Dict, Tuple, List
 
@@ -10,6 +7,7 @@ from neat import Checkpointer, Population, StdOutReporter, StatisticsReporter, D
 from neat.nn import FeedForwardNetwork
 
 from game import Game
+from game_map import GameMap
 
 
 def print_signature(title):
@@ -23,103 +21,53 @@ def print_signature(title):
     print()
 
 
-def pop_setup(name, neat_config) -> Population:
+def pop_setup(neat_config) -> Population:
     if not os.path.isdir('./checkpoints'):
         os.mkdir('./checkpoints')
 
-    if not os.path.isdir(f'./checkpoints/{name}'):
-        os.mkdir(f'./checkpoints/{name}')
+    if not os.path.isdir('./logs'):
+        os.mkdir('./logs')
 
-    ckp_list = glob.glob(f'./checkpoints/{name}/*')
+    ckp_list = glob.glob(f'./checkpoints/*')
 
     if len(ckp_list) > 0:
         ckp_file = max(ckp_list, key=os.path.getctime)
-        print(f'Loading {name} checkpoint: {ckp_file}')
+        print(f'Loading checkpoint: {ckp_file}')
         pop = Checkpointer.restore_checkpoint(ckp_file)
     else:
-        print(f'Creating new population for {name}')
+        print(f'Creating new population')
         pop = Population(neat_config)
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
-    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'./checkpoints/{name}/neat-checkpoint-'))
+    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'./checkpoints/generation-'))
 
     return pop
 
 
-def assign_fitness(genomes: List[Tuple[int, DefaultGenome]], fitness_mapping: Dict[int, float]) -> None:
-    for genome_id, genome in genomes:
-        genome.fitness = fitness_mapping[genome.key]
-
-
-def evaluate_fitness(blue_genomes: Dict[int, DefaultGenome], red_genomes: Dict[int, DefaultGenome], config: Config) -> Tuple[Dict[int, float], Dict[int, float]]:
-    queue = Queue()
+def evaluate_fitness(generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
     threads = []
-    print_lock = Lock()
-    bf_list = defaultdict(float)
-    rf_list = defaultdict(float)
+    lock = Lock()
 
-    blue_genomes = list(blue_genomes.values())
-    red_genomes = list(red_genomes.values())
-    team_one = None
-    team_one_name = None
-    team_two = None
-    team_two_name = None
-    opponents = []
+    if os.path.exists(f'./logs/generation-{generation}.log'):
+        os.remove(f'./logs/generation-{generation}.log')
 
-    if len(blue_genomes) > len(red_genomes):
-        team_one = blue_genomes
-        team_one_name = 'B'
-        team_two = red_genomes
-        team_two_name = 'R'
-    elif len(blue_genomes) < len(red_genomes):
-        team_one = red_genomes
-        team_one_name = 'R'
-        team_two = blue_genomes
-        team_two_name = 'B'
-    else:
-        team_one = blue_genomes
-        team_one_name = 'B'
-        team_two = red_genomes
-        team_two_name = 'R'
-
-    if len(team_one) != len(team_two):
-        for idx in range(len(team_two)):
-            opponents.append((team_one[idx], team_two[idx]))
-
-        for idx in range(len(red_genomes), len(blue_genomes)):
-            opponents.append((team_one[idx], secrets.choice(team_two)))
-    else:
-        for idx in range(len(team_one)):
-            opponents.append((team_one[idx], team_two[idx]))
-
-    for blue_genome, red_genome in opponents:
-        thread = Thread(
-            name=f'{team_one_name}{blue_genome.key}{team_two_name}{red_genome.key}',
-            target=process_game,
-            daemon=True,
-            args=[queue, print_lock, blue_genome, red_genome, config]
-        )
+    for genome_id, genome in genomes:
+        thread = Thread(name=f'Genome-{genome_id}', target=process_game, daemon=True, args=[genome, config, generation, lock])
         threads.append(thread)
         thread.start()
 
     for thread in threads:
         thread.join()
 
-    while not queue.empty():
-        game_result = queue.get()
-        bf_list[game_result['blue_id']] = game_result['blue_fitness']
-        rf_list[game_result['red_id']] = game_result['red_fitness']
-
-    return bf_list, rf_list
+    print()
 
 
-def process_game(queue: Queue, print_lock: Lock, blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config) -> None:
+def process_game(genome: DefaultGenome, config: Config, generation: int, lock: Lock) -> None:
     game = Game()
+    play_game(genome, config, game, False)
 
-    play_game(blue_genome, red_genome, config, game, False)
-
-    blue_fitness, red_fitness = game.get_fitness()
+    fitness = game.get_fitness()
 
     rounds = game.get_round()
     blue_tiles = game.get_tile_count(Game.BluePlayer)
@@ -133,50 +81,43 @@ def process_game(queue: Queue, print_lock: Lock, blue_genome: DefaultGenome, red
     else:
         winner = '-'
 
-    blue_id = blue_genome.key
-    red_id = red_genome.key
-    game_name = f'B{blue_id}R{red_id}'
+    log_text = f'Genome: {genome.key:>4}' \
+               f'{"":2}' \
+               f'Rounds: {rounds:>4}' \
+               f'{"":2}' \
+               f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
+               f'{"":2}' \
+               f'Fitness: {fitness:>6.1f}' \
+               f'{"":2}' \
+               f'Winner: {winner:^4}'
 
-    print_lock.acquire()
+    lock.acquire()
 
-    print(
-        f'{game_name:<10}'
-        f'{"":2}'
-        f'Rounds: {rounds:>4}'
-        f'{"":2}'
-        f'Winner: {winner:^4}'
-        f'{"":2}'
-        f'Tiles: {blue_tiles:>2} / {red_tiles:<2}'
-        f'{"":2}'
-        f'Fitness: {blue_fitness:>6.1f} / {red_fitness:<6.1f}'
-    )
+    print(log_text)
 
-    print_lock.release()
+    with open(f'./logs/generation-{generation}.log', 'a') as file:
+        print(log_text, file=file)
 
-    queue.put({
-        'blue_id': blue_id,
-        'blue_fitness': blue_fitness,
-        'red_id': red_id,
-        'red_fitness': red_fitness
-    })
+    lock.release()
+
+    genome.fitness = fitness
 
 
-def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, game: Game, render: bool) -> None:
+def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, game_map: GameMap = None) -> None:
     game.reset_game()
+    game.game_map = game_map
 
-    blue_net = FeedForwardNetwork.create(blue_genome, config)
-    red_net = FeedForwardNetwork.create(red_genome, config)
+    network = FeedForwardNetwork.create(genome, config)
 
     if render:
-        game.game_map.blue_id = blue_genome.key
-        game.game_map.red_id = red_genome.key
+        game.game_map.genome_id = genome.key
         game.game_map.render()
 
     game.increase_round()
 
     while True:
         game.set_player_id(Game.BluePlayer)
-        player_move = play_game_move(blue_net, red_net, game)
+        player_move = play_simulated(game)
 
         if render:
             game.game_map.render(player_move=player_move)
@@ -185,7 +126,7 @@ def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Con
             break
 
         game.set_player_id(Game.RedPlayer)
-        player_move = play_game_move(blue_net, red_net, game)
+        player_move = play_move(network, game)
 
         if render:
             game.game_map.render(player_move=player_move)
@@ -196,12 +137,27 @@ def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Con
         game.increase_round()
 
 
-def play_game_move(blue_net: FeedForwardNetwork, red_net: FeedForwardNetwork, game: Game) -> Dict:
-    player_id = game.get_player_id()
+def play_simulated(game: Game) -> Dict:
+    player_move = game.state_parser.simulate_move()
+    move_type = player_move['move_type']
+    source_tile = player_move['source_tile']
+    target_tile = player_move['target_tile']
+    troops = player_move['troops']
 
-    net = blue_net if player_id == Game.BluePlayer else red_net
-    net_out = net.activate(game.state_parser.encode_state())
-    player_move = game.state_parser.decode_state(net_out)
+    if move_type == Game.ProductionMove:
+        game.production_move(source_tile)
+    elif move_type == Game.AttackMove:
+        game.attack_move(source_tile, target_tile, troops)
+    elif move_type == Game.TransportMove:
+        game.transport_move(source_tile, target_tile, troops)
+
+    game.save_state()
+    return player_move
+
+
+def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
+    output = network.activate(game.state_parser.encode_state())
+    player_move = game.state_parser.decode_state(output)
 
     move_type = player_move['move_type']
     source_tile = player_move['source_tile']

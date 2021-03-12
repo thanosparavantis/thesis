@@ -17,8 +17,7 @@ class GameMap:
 
     def __init__(self):
         self.game = None
-        self.blue_id = 0
-        self.red_id = 0
+        self.genome_id = None
         self.figure = None  # type: Figure
         self.axis = None  # type: Axes
         self.game_map_tiles = dict()  # type: Dict[Tuple[int, int], GameMapTile]
@@ -60,19 +59,15 @@ class GameMap:
         return move_text
 
     def create_subtitle(self) -> str:
-        blue_player = 'Blue' if self.blue_id == 0 else f'Blue {self.blue_id}'
-        red_player = 'Red' if self.blue_id == 0 else f'Red {self.red_id}'
         rounds = self.game.get_round()
         player_id = self.game.get_player_id() if rounds > 0 else 0
-        blue_fitness, red_fitness = self.game.get_fitness()
-        blue_fitness = blue_fitness
-        red_fitness = red_fitness
+        fitness = self.game.get_fitness()
 
-        return f'{blue_player:^8} vs {red_player:^8}' \
+        return f'Genome: {self.genome_id:>4}' \
                f'{"":5}' \
-               f'{rounds}.{player_id}' \
+               f'Round: {rounds}.{player_id}' \
                f'{"":>5}' \
-               f'Fitness:{blue_fitness:>6.1f} / {red_fitness:<6.1f}'
+               f'Fitness: {fitness:>6.1f}'
 
     def render_tile(self, tile: Tuple[int, int], poly_xy: Tuple[float, float], encoding_value: float, player_move: Dict) -> None:
         if player_move is not None and player_move['source_tile'] != tile and player_move['target_tile'] != tile:
@@ -171,6 +166,7 @@ class GameMap:
             plt.show()
 
         if self.figure is None:
+            plt.close()
             self.figure, self.axis = plt.subplots()  # type: Figure, Axes
 
         if player_move is None:
@@ -240,11 +236,6 @@ class GameMap:
         if not os.path.isdir(self.save_path):
             os.mkdir(self.save_path)
 
-        game_folder = f'{self.save_path}/blue-{self.blue_id}-red-{self.red_id}'
-
-        if not os.path.isdir(game_folder):
-            os.mkdir(game_folder)
-
         rounds = self.game.get_round()
         player_id = self.game.get_player_id()
 
@@ -254,6 +245,6 @@ class GameMap:
             game_file = f'round-{rounds}-player-{player_id}'
 
         if render:
-            self.render(player_move, show=False)
+            self.render(player_move=player_move, show=False)
 
-        self.figure.savefig(f'{game_folder}/{game_file}.png')
+        self.figure.savefig(f'{self.save_path}/{game_file}.png')

@@ -5,6 +5,7 @@ import time
 from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
 from game import Game
+from game_map import GameMap
 from shared import print_signature, pop_setup, play_game
 
 
@@ -19,17 +20,32 @@ def main():
         './config'
     )
 
-    blue_pop = pop_setup('blue', neat_config)
-    red_pop = pop_setup('red', neat_config)
-    blue_genomes = list(blue_pop.population.values())
-    random.shuffle(blue_genomes)
-    red_genomes = list(red_pop.population.values())
+
+    game_map = GameMap()
 
     while True:
-        blue_genome = secrets.choice(blue_genomes)
-        red_genome = secrets.choice(red_genomes)
+        population = pop_setup(neat_config)
+
+        genome = None
+
+        while genome is None:
+            genome_id = input('Enter Genome Key> ')
+
+            if len(genome_id) == 0:
+                break
+
+            genome_id = int(genome_id)
+
+            if genome_id in population.population:
+                genome = population.population[genome_id]
+
+        if genome is None:
+            genome = random.choice(list(population.population.values()))
+
         game = Game()
-        play_game(blue_genome, red_genome, neat_config, game, True)
+        game_map.game = game
+
+        play_game(genome, neat_config, game, True, game_map)
         time.sleep(1)
 
 

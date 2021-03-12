@@ -22,7 +22,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 100
+    MaxRounds = 500
 
     def __init__(self):
         self.state_parser = None
@@ -32,7 +32,8 @@ class Game:
         self.map_troops = None
         self.player_id = None
         self.rounds = None
-        self.states = []
+        self.states = None
+        self.random = None
         self.reset_game()
 
     @staticmethod
@@ -44,7 +45,7 @@ class Game:
         game.rounds = other_game.rounds
         return game
 
-    def reset_game(self, first_player_id: int = BluePlayer) -> None:
+    def reset_game(self) -> None:
         from state_parser import StateParser
         from game_map import GameMap
 
@@ -60,8 +61,9 @@ class Game:
         self.map_troops = np.zeros_like(self.map_owners)
         self.map_troops[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.StartingTroops
         self.map_troops[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.StartingTroops
-        self.player_id = first_player_id
+        self.player_id = Game.BluePlayer
         self.states = []
+        self.random = np.random.RandomState(2020)
         self.reset_round()
 
     def create_state(self):
@@ -295,7 +297,7 @@ class Game:
         blue_tiles = self.get_tile_count(Game.BluePlayer)
         red_tiles = self.get_tile_count(Game.RedPlayer)
 
-        return self.rounds >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0 or self.is_state_repeated()
+        return self.rounds >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0
 
     def get_winner(self) -> int:
         blue_tiles = self.get_tile_count(Game.BluePlayer)
@@ -309,17 +311,8 @@ class Game:
         return Game.NaturePlayer
 
     def get_fitness(self):
-        return self.get_player_fitness(Game.BluePlayer), self.get_player_fitness(Game.RedPlayer)
+        many_tiles = (self.get_tile_count(Game.RedPlayer) / Game.MapSize) * 50
+        is_winner = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() == Game.RedPlayer else 0
+        enemy_advance = (self.get_tile_count(Game.BluePlayer) / Game.MapSize) * 50
 
-    def get_player_fitness(self, player_id: int) -> float:
-        rounds = self.get_round()
-        tile_count = self.get_tile_count(player_id)
-        troop_count = self.get_troop_count(player_id)
-
-        tile_component = (tile_count / Game.MapSize) * 50
-        # troop_component = (troop_count / (Game.MapSize * Game.TileTroopMax)) * 20
-        # round_component = (abs((rounds - Game.MaxRounds)) / Game.MaxRounds) * 50
-        winner_component = 50 if self.get_winner() == player_id else 0
-        fitness = tile_component + winner_component
-
-        return fitness
+        return many_tiles + is_winner - enemy_advance

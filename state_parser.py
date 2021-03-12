@@ -3,6 +3,8 @@ import random
 import sys
 from typing import List, Dict, Tuple
 
+import numpy as np
+
 
 class StateParser:
     def __init__(self):
@@ -79,7 +81,8 @@ class StateParser:
                     'move_type': Game.ProductionMove,
                     'source_tile': tile,
                     'target_tile': tile,
-                    'troops': 1
+                    'troops': 1,
+                    'guided': True,
                 })
 
             max_troops = self.game.get_tile_troops(tile)
@@ -91,7 +94,8 @@ class StateParser:
                             'move_type': Game.AttackMove,
                             'source_tile': tile,
                             'target_tile': tile_adj,
-                            'troops': troops
+                            'troops': troops,
+                            'guided': True,
                         })
 
                     if self.game.is_transport_move_valid(tile, tile_adj, troops):
@@ -99,13 +103,10 @@ class StateParser:
                             'move_type': Game.TransportMove,
                             'source_tile': tile,
                             'target_tile': tile_adj,
-                            'troops': troops
+                            'troops': troops,
+                            'guided': True,
                         })
 
-        if len(moves) == 0:
-            return
-
-        random.shuffle(moves)
         return moves
 
     def guide_move(self, player_move: Dict) -> Dict:
@@ -133,7 +134,13 @@ class StateParser:
         player_move['source_tile'] = best_move['source_tile']
         player_move['target_tile'] = best_move['target_tile']
         player_move['troops'] = best_move['troops']
-        player_move['guided'] = True
+
+        return player_move
+
+    def simulate_move(self) -> Dict:
+        moves = self.get_next_moves()
+
+        player_move = self.game.random.choice(moves)
 
         return player_move
 
