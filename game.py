@@ -1,7 +1,7 @@
 from typing import Tuple, List
 
 import numpy as np
-from numpy import ndarray
+from numpy.random.mtrand import RandomState
 
 from game_player import GamePlayer
 
@@ -16,7 +16,7 @@ class Game:
     RedPlayer = 2
     RedStartPoint = (MapWidth - 1, MapHeight - 1)
     TileTroopMin = 1
-    TileTroopMax = 20
+    TileTroopMax = 10
     StartingTroops = TileTroopMin
     IdleMove = -1
     ProductionMove = 0
@@ -27,7 +27,9 @@ class Game:
     def __init__(self):
         self.state_parser = None
         self.game_map = None
-        self.players = None
+        self.nature_player = None
+        self.blue_player = None
+        self.red_player = None
         self.map_owners = None
         self.map_troops = None
         self.player_id = None
@@ -45,26 +47,48 @@ class Game:
         game.rounds = other_game.rounds
         return game
 
-    def reset_game(self) -> None:
+    def reset_game(self, create_game_map: bool = True) -> None:
         from state_parser import StateParser
         from game_map import GameMap
 
         self.state_parser = StateParser()
-        self.game_map = GameMap()
         self.state_parser.game = self
+        self.game_map = GameMap() if create_game_map else self.game_map
         self.game_map.game = self
         self.game_map.state_parser = self.state_parser
-        self.players = [GamePlayer('nature', '#CBCBC9'), GamePlayer('blue', '#2A8FBD'), GamePlayer('red', '#B40406')]
-        self.map_owners = np.zeros((Game.MapWidth, Game.MapHeight), dtype='uint8')
-        self.map_owners[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.BluePlayer
-        self.map_owners[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.RedPlayer
-        self.map_troops = np.zeros_like(self.map_owners)
-        self.map_troops[Game.BlueStartPoint[0], Game.BlueStartPoint[1]] = Game.StartingTroops
-        self.map_troops[Game.RedStartPoint[0], Game.RedStartPoint[1]] = Game.StartingTroops
-        self.player_id = Game.BluePlayer
+        self.nature_player = GamePlayer('nature', '#D4D4D8')
+        self.blue_player = GamePlayer('blue', '#2563EB')
+        self.red_player = GamePlayer('red', '#DC2626')
+        self.player_id = Game.RedPlayer
         self.states = []
-        self.random = np.random.RandomState(2020)
-        self.reset_round()
+        self.random = RandomState(2020)
+        self.reset_rounds()
+
+        self.map_owners = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 1, 0],
+            [0, 1, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 2],
+        ])
+
+        self.map_troops = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 5, 5, 0, 5, 0],
+            [0, 5, 0, 5, 5, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1],
+        ])
+
+    def get_player(self, player_id: int) -> GamePlayer:
+        if player_id == Game.BluePlayer:
+            return self.blue_player
+        elif player_id == Game.RedPlayer:
+            return self.red_player
+        else:
+            return self.nature_player
 
     def create_state(self):
         state = []
@@ -86,31 +110,7 @@ class Game:
         repeats = len(list(filter(lambda past_state: past_state == state, self.states))) - 1
         return repeats >= 3
 
-    def get_map_owners(self) -> ndarray:
-        return self.map_owners
-
-    def get_map_troops(self) -> ndarray:
-        return self.map_troops
-
-    def change_player_id(self) -> None:
-        self.player_id = Game.RedPlayer if self.player_id == Game.BluePlayer else Game.BluePlayer
-
-    def get_player_id(self) -> int:
-        return self.player_id
-
-    def set_player_id(self, player_id: int) -> None:
-        self.player_id = player_id
-
-    def get_enemy_id(self) -> int:
-        return Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
-
-    def get_player(self, player_id: int) -> GamePlayer:
-        return self.players[player_id]
-
-    def get_round(self) -> int:
-        return self.rounds
-
-    def reset_round(self) -> None:
+    def reset_rounds(self) -> None:
         self.rounds = 0
 
     def increase_round(self) -> None:
@@ -134,6 +134,10 @@ class Game:
         return True
 
     def attack_move(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> None:
+        player = self.get_player(self.player_id)
+        enemy_id = Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
+        enemy = self.get_player(enemy_id)
+
         s_i, s_j = source_tile
         t_i, t_j = target_tile
 
@@ -144,8 +148,14 @@ class Game:
 
         defenders = self.map_troops[t_i, t_j]
 
+        if self.map_owners[t_i, t_j] == enemy_id:
+            player.attacks += 1
+
         if defenders < attackers:
             self.map_owners[t_i, t_j] = self.player_id
+
+            if self.map_owners[t_i, t_j] == enemy_id:
+                player.attacks += 1
 
         self.map_troops[t_i, t_j] = abs(defenders - attackers)
 
@@ -294,10 +304,7 @@ class Game:
         return lookup[tile]
 
     def has_ended(self) -> bool:
-        blue_tiles = self.get_tile_count(Game.BluePlayer)
-        red_tiles = self.get_tile_count(Game.RedPlayer)
-
-        return self.rounds >= Game.MaxRounds or blue_tiles == 0 or red_tiles == 0
+        return self.rounds >= Game.MaxRounds or self.get_tile_count(Game.BluePlayer) == 0 or self.get_tile_count(Game.RedPlayer) == 0
 
     def get_winner(self) -> int:
         blue_tiles = self.get_tile_count(Game.BluePlayer)
@@ -311,8 +318,6 @@ class Game:
         return Game.NaturePlayer
 
     def get_fitness(self):
-        many_tiles = (self.get_tile_count(Game.RedPlayer) / Game.MapSize) * 50
-        is_winner = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() == Game.RedPlayer else 0
-        enemy_advance = (self.get_tile_count(Game.BluePlayer) / Game.MapSize) * 50
-
-        return many_tiles + is_winner - enemy_advance
+        winner_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() == Game.RedPlayer else 0
+        tiles_conquered = (abs(self.get_tile_count(Game.BluePlayer) - 6) / 6) * 50
+        return tiles_conquered + winner_bonus

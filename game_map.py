@@ -59,13 +59,12 @@ class GameMap:
         return move_text
 
     def create_subtitle(self) -> str:
-        rounds = self.game.get_round()
-        player_id = self.game.get_player_id() if rounds > 0 else 0
+        rounds = self.game.rounds
         fitness = self.game.get_fitness()
 
         return f'Genome: {self.genome_id:>4}' \
                f'{"":5}' \
-               f'Round: {rounds}.{player_id}' \
+               f'Round: {rounds}' \
                f'{"":>5}' \
                f'Fitness: {fitness:>6.1f}'
 
@@ -117,6 +116,7 @@ class GameMap:
                 y=poly_xy[1] + 0.2,
                 s=str(troop_count),
                 fontsize='medium',
+                color='#18181B',
                 horizontalalignment='center',
                 verticalalignment='center'
             )
@@ -135,6 +135,7 @@ class GameMap:
                 s=str(tile),
                 alpha=0.3,
                 fontsize='x-small',
+                color='#18181B',
                 horizontalalignment='center',
                 verticalalignment='center'
             )
@@ -148,6 +149,7 @@ class GameMap:
                 s=str(encoding_value),
                 alpha=0.3,
                 fontsize='x-small',
+                color='#18181B',
                 horizontalalignment='center',
                 verticalalignment='center'
             )

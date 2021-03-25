@@ -1,6 +1,8 @@
 import glob
 import os
-from threading import Thread, Lock
+import time
+from multiprocessing import Pool, Lock, Manager
+from multiprocessing.queues import Queue
 from typing import Dict, Tuple, List
 
 from neat import Checkpointer, Population, StdOutReporter, StatisticsReporter, DefaultGenome, Config
@@ -21,22 +23,26 @@ def print_signature(title):
     print()
 
 
-def pop_setup(neat_config) -> Population:
-    if not os.path.isdir('./checkpoints'):
-        os.mkdir('./checkpoints')
-
-    if not os.path.isdir('./logs'):
-        os.mkdir('./logs')
-
-    ckp_list = glob.glob(f'./checkpoints/*')
-
-    if len(ckp_list) > 0:
-        ckp_file = max(ckp_list, key=os.path.getctime)
-        print(f'Loading checkpoint: {ckp_file}')
+def pop_setup(neat_config: Config, ckp_file: str = None) -> Population:
+    if ckp_file:
+        print(f'Loading predefined checkpoint: {ckp_file}')
         pop = Checkpointer.restore_checkpoint(ckp_file)
     else:
-        print(f'Creating new population')
-        pop = Population(neat_config)
+        if not os.path.isdir('./checkpoints'):
+            os.mkdir('./checkpoints')
+
+        if not os.path.isdir('./logs'):
+            os.mkdir('./logs')
+
+        ckp_list = glob.glob(f'./checkpoints/*')
+
+        if len(ckp_list) > 0:
+            ckp_file = max(ckp_list, key=os.path.getctime)
+            print(f'Loading checkpoint: {ckp_file}')
+            pop = Checkpointer.restore_checkpoint(ckp_file)
+        else:
+            print(f'Creating new population')
+            pop = Population(neat_config)
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
@@ -46,32 +52,35 @@ def pop_setup(neat_config) -> Population:
 
 
 def evaluate_fitness(generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
-    threads = []
-    lock = Lock()
+    pool = Pool(processes=10)
+    manager = Manager()
+    lock = manager.Lock()
+    queue = manager.Queue()
 
     if os.path.exists(f'./logs/generation-{generation}.log'):
         os.remove(f'./logs/generation-{generation}.log')
 
-    for genome_id, genome in genomes:
-        thread = Thread(name=f'Genome-{genome_id}', target=process_game, daemon=True, args=[genome, config, generation, lock])
-        threads.append(thread)
-        thread.start()
+    pool.starmap(process_game, [[genome, config, generation, lock, queue] for genome_id, genome in genomes])
 
-    for thread in threads:
-        thread.join()
+    while not queue.empty():
+        training_data = queue.get()
+        genome = list(filter(lambda item: item[0] == training_data[0], genomes))[0][1]
+        genome.fitness = training_data[1]
 
     print()
 
 
-def process_game(genome: DefaultGenome, config: Config, generation: int, lock: Lock) -> None:
+def process_game(genome: DefaultGenome, config: Config, generation: int, lock: Lock, queue: Queue) -> None:
     game = Game()
     play_game(genome, config, game, False)
 
     fitness = game.get_fitness()
 
-    rounds = game.get_round()
+    rounds = game.rounds
     blue_tiles = game.get_tile_count(Game.BluePlayer)
+    blue_troops = game.get_troop_count(Game.BluePlayer)
     red_tiles = game.get_tile_count(Game.RedPlayer)
+    red_troops = game.get_troop_count(Game.RedPlayer)
     winner_id = game.get_winner()
 
     if winner_id == Game.BluePlayer:
@@ -87,9 +96,11 @@ def process_game(genome: DefaultGenome, config: Config, generation: int, lock: L
                f'{"":2}' \
                f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
                f'{"":2}' \
+               f'Troops: {blue_troops:>3} / {red_troops:>3}' \
+               f'{"":2}' \
                f'Fitness: {fitness:>6.1f}' \
                f'{"":2}' \
-               f'Winner: {winner:^4}'
+               f'Winner: {winner:>4}'
 
     lock.acquire()
 
@@ -100,12 +111,15 @@ def process_game(genome: DefaultGenome, config: Config, generation: int, lock: L
 
     lock.release()
 
-    genome.fitness = fitness
+    queue.put((genome.key, fitness))
 
 
 def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, game_map: GameMap = None) -> None:
-    game.reset_game()
-    game.game_map = game_map
+    if game_map is None:
+        game.reset_game(create_game_map=True)
+    else:
+        game.game_map = game_map
+        game.reset_game(create_game_map=False)
 
     network = FeedForwardNetwork.create(genome, config)
 
@@ -116,16 +130,16 @@ def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, g
     game.increase_round()
 
     while True:
-        game.set_player_id(Game.BluePlayer)
-        player_move = play_simulated(game)
+        # game.player_id = Game.BluePlayer
+        # player_move = play_simulated(game)
 
-        if render:
-            game.game_map.render(player_move=player_move)
+        # if render:
+        #     game.game_map.render(player_move=player_move)
 
-        if game.has_ended():
-            break
+        # if game.has_ended():
+        #     break
 
-        game.set_player_id(Game.RedPlayer)
+        # game.player_id = Game.RedPlayer
         player_move = play_move(network, game)
 
         if render:

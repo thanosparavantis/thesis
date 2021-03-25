@@ -1,9 +1,7 @@
 import math
-import random
 import sys
+import time
 from typing import List, Dict, Tuple
-
-import numpy as np
 
 
 class StateParser:
@@ -68,44 +66,40 @@ class StateParser:
 
         return troops
 
+    def create_move(self, move_type: int, source_tile: Tuple[int, int], target_tile: Tuple[int, int], troops: int, guided: bool) -> Dict:
+        return {
+            'move_type': move_type,
+            'source_tile': source_tile,
+            'target_tile': target_tile,
+            'troops': troops,
+            'guided': guided,
+        }
+
     def get_next_moves(self) -> List[Dict]:
         from game import Game
 
         moves = []
-        player_id = self.game.get_player_id()
+        player_id = self.game.player_id
         tiles = self.game.get_tiles(player_id)
 
+        prod_tiles = list(filter(lambda tile: self.game.is_production_move_valid(tile), tiles))
+        moves += [self.create_move(Game.ProductionMove, tile, tile, 1, True) for tile in prod_tiles]
+
         for tile in tiles:
-            if self.game.is_production_move_valid(tile):
-                moves.append({
-                    'move_type': Game.ProductionMove,
-                    'source_tile': tile,
-                    'target_tile': tile,
-                    'troops': 1,
-                    'guided': True,
-                })
+            max_troops = self.game.get_tile_troops(tile) + 1
+            tiles_adj = self.game.get_tile_adj(tile)
+            attack_tiles = list(filter(lambda tile_adj: self.game.get_tile_owner(tile_adj) != player_id, tiles_adj))
+            transport_tiles = list(filter(lambda tile_adj: self.game.get_tile_owner(tile_adj) == player_id, tiles_adj))
 
-            max_troops = self.game.get_tile_troops(tile)
-
-            for tile_adj in self.game.get_tile_adj(tile):
-                for troops in range(Game.TileTroopMin, max_troops + 1):
+            for tile_adj in attack_tiles:
+                for troops in range(Game.TileTroopMin, max_troops):
                     if self.game.is_attack_move_valid(tile, tile_adj, troops):
-                        moves.append({
-                            'move_type': Game.AttackMove,
-                            'source_tile': tile,
-                            'target_tile': tile_adj,
-                            'troops': troops,
-                            'guided': True,
-                        })
+                        moves.append(self.create_move(Game.AttackMove, tile, tile_adj, troops, True))
 
+            for tile_adj in transport_tiles:
+                for troops in range(Game.TileTroopMin, max_troops):
                     if self.game.is_transport_move_valid(tile, tile_adj, troops):
-                        moves.append({
-                            'move_type': Game.TransportMove,
-                            'source_tile': tile,
-                            'target_tile': tile_adj,
-                            'troops': troops,
-                            'guided': True,
-                        })
+                        moves.append(self.create_move(Game.TransportMove, tile, tile_adj, troops, True))
 
         return moves
 
@@ -130,6 +124,9 @@ class StateParser:
                 best_move = possible_move
                 distance = calc_distance
 
+        if best_move is None:
+            return
+
         player_move['move_type'] = best_move['move_type']
         player_move['source_tile'] = best_move['source_tile']
         player_move['target_tile'] = best_move['target_tile']
@@ -138,11 +135,20 @@ class StateParser:
         return player_move
 
     def simulate_move(self) -> Dict:
+        from game import Game
+
         moves = self.get_next_moves()
 
-        player_move = self.game.random.choice(moves)
+        production_move = list(filter(lambda move: move['move_type'] == Game.ProductionMove, moves))
+        attack_move = list(filter(lambda move: move['move_type'] == Game.AttackMove, moves))
+        transport_move = list(filter(lambda move: move['move_type'] == Game.TransportMove, moves))
 
-        return player_move
+        if self.game.rounds % 10 == 0:
+            return self.game.random.choice(transport_move)
+        elif self.game.rounds % 5 == 0:
+            return self.game.random.choice(attack_move)
+        else:
+            return self.game.random.choice(production_move)
 
     def decode_state(self, output: list) -> Dict:
         from game import Game
