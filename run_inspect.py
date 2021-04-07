@@ -1,11 +1,10 @@
-import glob
-from os import listdir
-from os.path import isfile, join
+import json
 
 from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
 from game import Game
 from game_map import GameMap
+from game_result import GameResult
 from shared import print_signature, pop_setup, play_game
 
 
@@ -14,30 +13,20 @@ def main():
 
     neat_config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
-    ckp_list = [f for f in listdir('./checkpoints/') if isfile(join('./checkpoints/', f))]
-
-    print('Checkpoints:')
-
-    for idx, ckp in enumerate(ckp_list):
-        print(f'{idx}. {ckp}')
-
-    print()
-
-    ckp_idx = -1
-
-    while ckp_idx < 0 or ckp_idx >= len(ckp_list):
-        ckp_idx = int(input('Enter checkpoint index> '))
-
-    ckp_file = f'./checkpoints/{ckp_list[ckp_idx]}'
-
+    ckp_number = input('Enter checkpoint number> ')
+    ckp_file = f'./checkpoints/checkpoint-{ckp_number}'
     population = pop_setup(neat_config, ckp_file)
 
-    keys = list(population.population.keys())
-    key_list = ', '.join(map(str, keys))
+    game_results_file = open(f'./game-results/game-result-{ckp_number}.json', 'r')
+    game_results = json.load(game_results_file)
+    game_results_file.close()
+    game_results = [GameResult(game_json=game_json) for game_json in game_results]
 
     print()
-    print(f'Genome Keys:')
-    print(key_list)
+
+    for game_result in game_results:
+        print(game_result)
+
     print()
 
     genome_key = input('Enter genome key> ')

@@ -12,12 +12,9 @@ class Game:
     MapSize = MapWidth * MapHeight
     NaturePlayer = 0
     BluePlayer = 1
-    BlueStartPoint = (0, 0)
     RedPlayer = 2
-    RedStartPoint = (MapWidth - 1, MapHeight - 1)
     TileTroopMin = 1
-    TileTroopMax = 10
-    StartingTroops = TileTroopMin
+    TileTroopMax = 20
     IdleMove = -1
     ProductionMove = 0
     AttackMove = 1
@@ -65,22 +62,29 @@ class Game:
         self.reset_rounds()
 
         self.map_owners = np.array([
+            [1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 0, 1, 0],
-            [0, 1, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 2],
         ])
 
         self.map_troops = np.array([
+            [1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [0, 5, 5, 0, 5, 0],
-            [0, 5, 0, 5, 5, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 1],
         ])
+
+    def get_fitness(self):
+        game_won = 20 if self.get_winner() == Game.RedPlayer else 0
+        time_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() != Game.BluePlayer else 0
+        expanding = (self.get_tile_count(Game.RedPlayer) / Game.MapSize) * 30
+
+        return game_won + time_bonus + expanding
 
     def get_player(self, player_id: int) -> GamePlayer:
         if player_id == Game.BluePlayer:
@@ -136,7 +140,6 @@ class Game:
     def attack_move(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> None:
         player = self.get_player(self.player_id)
         enemy_id = Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
-        enemy = self.get_player(enemy_id)
 
         s_i, s_j = source_tile
         t_i, t_j = target_tile
@@ -316,8 +319,3 @@ class Game:
             return Game.RedPlayer
 
         return Game.NaturePlayer
-
-    def get_fitness(self):
-        winner_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() == Game.RedPlayer else 0
-        tiles_conquered = (abs(self.get_tile_count(Game.BluePlayer) - 6) / 6) * 50
-        return tiles_conquered + winner_bonus

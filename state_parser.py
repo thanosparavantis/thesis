@@ -124,9 +124,6 @@ class StateParser:
                 best_move = possible_move
                 distance = calc_distance
 
-        if best_move is None:
-            return
-
         player_move['move_type'] = best_move['move_type']
         player_move['source_tile'] = best_move['source_tile']
         player_move['target_tile'] = best_move['target_tile']
@@ -135,20 +132,9 @@ class StateParser:
         return player_move
 
     def simulate_move(self) -> Dict:
-        from game import Game
-
         moves = self.get_next_moves()
 
-        production_move = list(filter(lambda move: move['move_type'] == Game.ProductionMove, moves))
-        attack_move = list(filter(lambda move: move['move_type'] == Game.AttackMove, moves))
-        transport_move = list(filter(lambda move: move['move_type'] == Game.TransportMove, moves))
-
-        if self.game.rounds % 10 == 0:
-            return self.game.random.choice(transport_move)
-        elif self.game.rounds % 5 == 0:
-            return self.game.random.choice(attack_move)
-        else:
-            return self.game.random.choice(production_move)
+        return self.game.random.choice(moves)
 
     def decode_state(self, output: list) -> Dict:
         from game import Game

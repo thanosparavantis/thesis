@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import time
 from multiprocessing import Pool, Lock, Manager
@@ -10,6 +11,7 @@ from neat.nn import FeedForwardNetwork
 
 from game import Game
 from game_map import GameMap
+from game_result import GameResult
 
 
 def print_signature(title):
@@ -31,9 +33,6 @@ def pop_setup(neat_config: Config, ckp_file: str = None) -> Population:
         if not os.path.isdir('./checkpoints'):
             os.mkdir('./checkpoints')
 
-        if not os.path.isdir('./logs'):
-            os.mkdir('./logs')
-
         ckp_list = glob.glob(f'./checkpoints/*')
 
         if len(ckp_list) > 0:
@@ -46,7 +45,7 @@ def pop_setup(neat_config: Config, ckp_file: str = None) -> Population:
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
-    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'./checkpoints/generation-'))
+    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'./checkpoints/checkpoint-'))
 
     return pop
 
@@ -57,61 +56,42 @@ def evaluate_fitness(generation: int, genomes: List[Tuple[int, DefaultGenome]], 
     lock = manager.Lock()
     queue = manager.Queue()
 
-    if os.path.exists(f'./logs/generation-{generation}.log'):
-        os.remove(f'./logs/generation-{generation}.log')
+    if not os.path.isdir('./game-results'):
+        os.mkdir('./game-results')
 
-    pool.starmap(process_game, [[genome, config, generation, lock, queue] for genome_id, genome in genomes])
+    if os.path.exists(f'./game-results/game-result-{generation}.json'):
+        os.remove(f'./game-results/game-result-{generation}.json')
+
+    pool.starmap(process_game, [[genome, config, lock, queue] for genome_id, genome in genomes])
+
+    game_results = []
 
     while not queue.empty():
-        training_data = queue.get()
-        genome = list(filter(lambda item: item[0] == training_data[0], genomes))[0][1]
-        genome.fitness = training_data[1]
+        game_result = queue.get()  # type: GameResult
+        game_results.append(vars(game_result))
+        genome = list(filter(lambda item: item[0] == game_result.genome_key, genomes))[0][1]
+        genome.fitness = game_result.fitness
+
+    game_results.sort(key=lambda game_json: (game_json['fitness']), reverse=True)
+
+    if generation > 0:
+        number = generation - 1
+        with open(f'./game-results/game-result-{number}.json', 'a') as file:
+            json.dump(game_results, file, indent=2)
 
     print()
 
 
-def process_game(genome: DefaultGenome, config: Config, generation: int, lock: Lock, queue: Queue) -> None:
+def process_game(genome: DefaultGenome, config: Config, lock: Lock, queue: Queue) -> None:
     game = Game()
     play_game(genome, config, game, False)
-
-    fitness = game.get_fitness()
-
-    rounds = game.rounds
-    blue_tiles = game.get_tile_count(Game.BluePlayer)
-    blue_troops = game.get_troop_count(Game.BluePlayer)
-    red_tiles = game.get_tile_count(Game.RedPlayer)
-    red_troops = game.get_troop_count(Game.RedPlayer)
-    winner_id = game.get_winner()
-
-    if winner_id == Game.BluePlayer:
-        winner = 'Blue'
-    elif winner_id == Game.RedPlayer:
-        winner = 'Red'
-    else:
-        winner = '-'
-
-    log_text = f'Genome: {genome.key:>4}' \
-               f'{"":2}' \
-               f'Rounds: {rounds:>4}' \
-               f'{"":2}' \
-               f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
-               f'{"":2}' \
-               f'Troops: {blue_troops:>3} / {red_troops:>3}' \
-               f'{"":2}' \
-               f'Fitness: {fitness:>6.1f}' \
-               f'{"":2}' \
-               f'Winner: {winner:>4}'
+    game_result = GameResult(genome, game)
 
     lock.acquire()
-
-    print(log_text)
-
-    with open(f'./logs/generation-{generation}.log', 'a') as file:
-        print(log_text, file=file)
-
+    print(game_result)
     lock.release()
 
-    queue.put((genome.key, fitness))
+    queue.put(game_result)
 
 
 def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, game_map: GameMap = None) -> None:
@@ -130,16 +110,16 @@ def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, g
     game.increase_round()
 
     while True:
-        # game.player_id = Game.BluePlayer
-        # player_move = play_simulated(game)
+        game.player_id = Game.BluePlayer
+        player_move = play_simulated(game)
 
-        # if render:
-        #     game.game_map.render(player_move=player_move)
+        if render:
+            game.game_map.render(player_move=player_move)
 
-        # if game.has_ended():
-        #     break
+        if game.has_ended():
+            break
 
-        # game.player_id = Game.RedPlayer
+        game.player_id = Game.RedPlayer
         player_move = play_move(network, game)
 
         if render:
