@@ -17,7 +17,8 @@ class GameMap:
 
     def __init__(self):
         self.game = None
-        self.genome_id = None
+        self.blue_key = None
+        self.red_key = None
         self.figure = None  # type: Figure
         self.axis = None  # type: Axes
         self.game_map_tiles = dict()  # type: Dict[Tuple[int, int], GameMapTile]
@@ -60,13 +61,13 @@ class GameMap:
 
     def create_subtitle(self) -> str:
         rounds = self.game.rounds
-        fitness = self.game.get_fitness()
+        blue_fit, red_fit = self.game.get_fitness()
 
-        return f'Genome: {self.genome_id:>4}' \
+        return f'Genome: {self.blue_key:>4} / {self.red_key:<4}' \
                f'{"":5}' \
                f'Round: {rounds}' \
                f'{"":>5}' \
-               f'Fitness: {fitness:>6.1f}'
+               f'Fitness: {blue_fit:>6.1f} / {red_fit:<6.1f}'
 
     def render_tile(self, tile: Tuple[int, int], poly_xy: Tuple[float, float], encoding_value: float, player_move: Dict) -> None:
         if player_move is not None and player_move['source_tile'] != tile and player_move['target_tile'] != tile:

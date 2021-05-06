@@ -1,6 +1,5 @@
 import math
 import sys
-import time
 from typing import List, Dict, Tuple
 
 
@@ -130,11 +129,6 @@ class StateParser:
         player_move['troops'] = best_move['troops']
 
         return player_move
-
-    def simulate_move(self) -> Dict:
-        moves = self.get_next_moves()
-
-        return self.game.random.choice(moves)
 
     def decode_state(self, output: list) -> Dict:
         from game import Game

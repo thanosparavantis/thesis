@@ -1,11 +1,11 @@
 import json
 
-from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
+from neat import Config, Checkpointer, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
 from game import Game
 from game_map import GameMap
 from game_result import GameResult
-from shared import print_signature, pop_setup, play_game
+from shared import print_signature, play_game
 
 
 def main():
@@ -14,8 +14,8 @@ def main():
     neat_config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
     ckp_number = input('Enter checkpoint number> ')
-    ckp_file = f'./checkpoints/checkpoint-{ckp_number}'
-    population = pop_setup(neat_config, ckp_file)
+    blue_pop = Checkpointer.restore_checkpoint(f'./checkpoints/blue/checkpoint-{ckp_number}')
+    red_pop = Checkpointer.restore_checkpoint(f'./checkpoints/red/checkpoint-{ckp_number}')
 
     game_results_file = open(f'./game-results/game-result-{ckp_number}.json', 'r')
     game_results = json.load(game_results_file)
@@ -29,14 +29,16 @@ def main():
 
     print()
 
-    genome_key = input('Enter genome key> ')
+    blue_key = input('Enter blue genome key> ')
+    red_key = input('Enter red genome key> ')
 
-    genome = population.population[int(genome_key)]
+    blue_genome = blue_pop.population[int(blue_key)]
+    red_genome = red_pop.population[int(red_key)]
     game = Game()
     game_map = GameMap()
     game_map.game = game
 
-    play_game(genome, neat_config, game, True, game_map)
+    play_game(blue_genome, red_genome, neat_config, game, True, game_map)
 
     print()
     input('Press Enter to continue...')

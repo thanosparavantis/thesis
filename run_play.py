@@ -4,7 +4,7 @@ from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, 
 
 from game import Game
 from game_map import GameMap
-from shared import print_signature, pop_setup, play_game
+from shared import print_signature, pop_blue_setup, pop_red_setup, play_game
 
 
 def main():
@@ -12,17 +12,19 @@ def main():
 
     neat_config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
-    population = pop_setup(neat_config)
+    blue_pop = pop_blue_setup(neat_config)
+    red_pop = pop_red_setup(neat_config)
 
     game_map = GameMap()
 
     while True:
-        genome = secrets.choice(list(population.population.values()))
+        blue_genome = secrets.choice(list(blue_pop.population.values()))
+        red_genome = secrets.choice(list(red_pop.population.values()))
 
         game = Game()
         game_map.game = game
 
-        play_game(genome, neat_config, game, True, game_map)
+        play_game(blue_genome, red_genome, neat_config, game, True, game_map)
 
         print()
         input('Press Enter to continue...')
