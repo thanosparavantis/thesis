@@ -2,22 +2,21 @@ import json
 
 from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
-from game import Game
 from game_map import GameMap
 from game_result import GameResult
-from shared import print_signature, pop_setup, play_game
+from shared import print_signature, pop_setup, play_game, game_setup
 
 
 def main():
     print_signature("Inspection Script")
-
     neat_config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
-    ckp_number = input('Enter checkpoint number> ')
-    ckp_file = f'./checkpoints/checkpoint-{ckp_number}'
-    population = pop_setup(neat_config, ckp_file)
+    preset = int(input('Enter game preset> '))
 
-    game_results_file = open(f'./game-results/game-result-{ckp_number}.json', 'r')
+    ckp_number = int(input('Enter checkpoint number> '))
+    population = pop_setup(neat_config, preset, ckp_number)
+
+    game_results_file = open(f'./game-results-{preset}/game-result-{ckp_number}.json', 'r')
     game_results = json.load(game_results_file)
     game_results_file.close()
     game_results = [GameResult(game_json=game_json) for game_json in game_results]
@@ -32,11 +31,9 @@ def main():
     genome_key = input('Enter genome key> ')
 
     genome = population.population[int(genome_key)]
-    game = Game()
-    game_map = GameMap()
-    game_map.game = game
+    game = game_setup(preset)
 
-    play_game(genome, neat_config, game, True, game_map)
+    play_game(genome, neat_config, game, True)
 
     print()
     input('Press Enter to continue...')

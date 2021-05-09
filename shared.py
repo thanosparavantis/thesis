@@ -1,7 +1,6 @@
 import glob
 import json
 import os
-import time
 from multiprocessing import Pool, Lock, Manager
 from multiprocessing.queues import Queue
 from typing import Dict, Tuple, List
@@ -11,6 +10,7 @@ from neat.nn import FeedForwardNetwork
 
 from game import Game
 from game_map import GameMap
+from game_presets import GamePresetOne, GamePresetTwo
 from game_result import GameResult
 
 
@@ -25,15 +25,29 @@ def print_signature(title):
     print()
 
 
-def pop_setup(neat_config: Config, ckp_file: str = None) -> Population:
-    if ckp_file:
+def game_setup(preset: int) -> Game:
+    if preset == 1:
+        return GamePresetOne()
+    elif preset == 2:
+        return GamePresetTwo()
+    else:
+        return Game()
+
+
+def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Population:
+    folder = f'./checkpoints-{preset}'
+    filename = f'checkpoint-{ckp_number}'
+
+    if ckp_number:
+        ckp_file = f'{folder}/{filename}'
         print(f'Loading predefined checkpoint: {ckp_file}')
         pop = Checkpointer.restore_checkpoint(ckp_file)
     else:
-        if not os.path.isdir('./checkpoints'):
-            os.mkdir('./checkpoints')
 
-        ckp_list = glob.glob(f'./checkpoints/*')
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+        ckp_list = glob.glob(f'{folder}/*')
 
         if len(ckp_list) > 0:
             ckp_file = max(ckp_list, key=os.path.getctime)
@@ -45,24 +59,28 @@ def pop_setup(neat_config: Config, ckp_file: str = None) -> Population:
 
     pop.add_reporter(StdOutReporter(True))
     pop.add_reporter(StatisticsReporter())
-    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'./checkpoints/checkpoint-'))
+    pop.add_reporter(Checkpointer(generation_interval=1, filename_prefix=f'{folder}/checkpoint-'))
 
     return pop
 
 
-def evaluate_fitness(generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
-    pool = Pool(processes=10)
+def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
+    pool = Pool(processes=12)
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
 
-    if not os.path.isdir('./game-results'):
-        os.mkdir('./game-results')
+    gr_folder = f'./game-results-{preset}'
 
-    if os.path.exists(f'./game-results/game-result-{generation}.json'):
-        os.remove(f'./game-results/game-result-{generation}.json')
+    if not os.path.isdir(gr_folder):
+        os.mkdir(gr_folder)
 
-    pool.starmap(process_game, [[genome, config, lock, queue] for genome_id, genome in genomes])
+    if os.path.exists(f'{gr_folder}/game-result-{generation}.json'):
+        os.remove(f'{gr_folder}/game-result-{generation}.json')
+
+    pool.starmap(process_game, [
+        [preset, genome, config, lock, queue] for genome_id, genome in genomes
+    ])
 
     game_results = []
 
@@ -76,14 +94,14 @@ def evaluate_fitness(generation: int, genomes: List[Tuple[int, DefaultGenome]], 
 
     if generation > 0:
         number = generation - 1
-        with open(f'./game-results/game-result-{number}.json', 'a') as file:
+        with open(f'{gr_folder}/game-result-{number}.json', 'a') as file:
             json.dump(game_results, file, indent=2)
 
     print()
 
 
-def process_game(genome: DefaultGenome, config: Config, lock: Lock, queue: Queue) -> None:
-    game = Game()
+def process_game(preset: int, genome: DefaultGenome, config: Config, lock: Lock, queue: Queue) -> None:
+    game = game_setup(preset)
     play_game(genome, config, game, False)
     game_result = GameResult(genome, game)
 
@@ -105,28 +123,28 @@ def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, g
 
     if render:
         game.game_map.genome_id = genome.key
-        game.game_map.render()
+        game.game_map.save()
 
     game.increase_round()
 
     while True:
         game.player_id = Game.BluePlayer
-        player_move = play_simulated(game)
+        player_move = play_move(network, game)
 
         if render:
-            game.game_map.render(player_move=player_move)
+            game.game_map.save(player_move=player_move)
 
         if game.has_ended():
             break
 
         game.player_id = Game.RedPlayer
-        player_move = play_move(network, game)
+        # player_move = play_simulated(game)
 
-        if render:
-            game.game_map.render(player_move=player_move)
-
-        if game.has_ended():
-            break
+        # if render:
+        #     game.game_map.render(player_move=player_move)
+        #
+        # if game.has_ended():
+        #     break
 
         game.increase_round()
 

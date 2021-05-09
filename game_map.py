@@ -234,12 +234,12 @@ class GameMap:
         if show:
             plt.pause(0.001)
 
-    def save(self, player_move: Dict, render=True) -> None:
+    def save(self, player_move: Dict = None, render: bool = True) -> None:
         if not os.path.isdir(self.save_path):
             os.mkdir(self.save_path)
 
-        rounds = self.game.get_round()
-        player_id = self.game.get_player_id()
+        rounds = self.game.rounds
+        player_id = self.game.player_id
 
         if rounds == 0:
             game_file = f'round-{rounds}-start'

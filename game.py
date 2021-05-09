@@ -1,7 +1,8 @@
 from typing import Tuple, List
 
 import numpy as np
-from numpy.random.mtrand import RandomState
+from numpy import ndarray
+from numpy.random import Generator
 
 from game_player import GamePlayer
 
@@ -32,7 +33,7 @@ class Game:
         self.player_id = None
         self.rounds = None
         self.states = None
-        self.random = None
+        self.random = None  # type: Generator
         self.reset_game()
 
     @staticmethod
@@ -43,6 +44,33 @@ class Game:
         game.player_id = other_game.player_id
         game.rounds = other_game.rounds
         return game
+
+    def get_map(self) -> Tuple[ndarray, ndarray]:
+        map_owners = np.array([
+            [1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 2],
+        ])
+
+        map_troops = np.array([
+            [1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1],
+        ])
+
+        return map_owners, map_troops
+
+    def get_fitness(self) -> float:
+        game_won = 50 if self.get_winner() == Game.BluePlayer else 0
+        time_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() != Game.RedPlayer else 0
+        # expanding = (self.get_tile_count(Game.BluePlayer) / Game.MapSize) * 30
+        return float(game_won + time_bonus)
 
     def reset_game(self, create_game_map: bool = True) -> None:
         from state_parser import StateParser
@@ -58,33 +86,9 @@ class Game:
         self.red_player = GamePlayer('red', '#DC2626')
         self.player_id = Game.RedPlayer
         self.states = []
-        self.random = RandomState(2020)
-        self.reset_rounds()
-
-        self.map_owners = np.array([
-            [1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 2],
-        ])
-
-        self.map_troops = np.array([
-            [1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1],
-        ])
-
-    def get_fitness(self):
-        game_won = 20 if self.get_winner() == Game.RedPlayer else 0
-        time_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() != Game.BluePlayer else 0
-        expanding = (self.get_tile_count(Game.RedPlayer) / Game.MapSize) * 30
-
-        return game_won + time_bonus + expanding
+        self.random = np.random.default_rng(2)  # type: Generator
+        self.rounds = 0
+        self.map_owners, self.map_troops = self.get_map()
 
     def get_player(self, player_id: int) -> GamePlayer:
         if player_id == Game.BluePlayer:
@@ -113,9 +117,6 @@ class Game:
         state = self.create_state()
         repeats = len(list(filter(lambda past_state: past_state == state, self.states))) - 1
         return repeats >= 3
-
-    def reset_rounds(self) -> None:
-        self.rounds = 0
 
     def increase_round(self) -> None:
         self.rounds += 1

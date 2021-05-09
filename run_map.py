@@ -1,16 +1,11 @@
-import secrets
-
-from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
-
-from game import Game
-from game_map import GameMap
-from shared import print_signature, pop_setup, play_game
+from game_presets import GamePresetOne, GamePresetTwo
+from shared import print_signature
 
 
 def main():
     print_signature("Map Overview")
 
-    game = Game()
+    game = GamePresetTwo()
     game.game_map.genome_id = 0
     game.game_map.render()
 
