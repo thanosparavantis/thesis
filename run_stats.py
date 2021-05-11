@@ -1,4 +1,3 @@
-import inspect
 import json
 from operator import attrgetter
 from typing import List, Tuple
@@ -6,7 +5,6 @@ from typing import List, Tuple
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from pushbullet import Pushbullet
 
 from game_result import GameResult
 from shared import get_folder_contents
@@ -31,20 +29,6 @@ def main():
         gs_best = max(game_results, key=attrgetter('fitness'))
         gs_data.append(gs_best)
         win_data.append((blue_wins, ties, red_wins))
-
-    pb = Pushbullet(api_key='o.Ni4QO9yfo4vKFNeSrlNMFxYfdsiB5CaP')
-    gs_best = max(gs_data, key=attrgetter('fitness'))
-    pb.push_note(
-        title=f'Generation TEST',
-        body=inspect.cleandoc(f"""
-            Genome: {gs_best.genome_key}
-            Fitness: {gs_best.fitness:>.4f}
-            Blue Tiles: {gs_best.blue_tiles}
-            Red Tiles: {gs_best.red_tiles}
-            Blue Troops: {gs_best.blue_troops}
-            Red Troops: {gs_best.red_troops}
-            Winner: {gs_best.winner}
-        """))
 
     fig, axes = plt.subplots(3, 3)  # type: Figure, Axes
 
