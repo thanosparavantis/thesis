@@ -1,13 +1,19 @@
+import argparse
+
 from neat import DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, Config
 
 from shared import pop_setup, print_signature, evaluate_fitness
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Runs NEAT algorithm.')
+    parser.add_argument('--preset', dest='preset', metavar='ID', help='the preferred game preset to use for training')
+    args = vars(parser.parse_args())
+
     print_signature("Evolution Script")
     config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
-    preset = int(input('Enter game preset> '))
+    preset = int(args['preset'])
     population = pop_setup(config, preset)
 
     while True:
