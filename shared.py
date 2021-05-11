@@ -76,7 +76,7 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
 
 
 def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
-    pool = Pool(processes=12)
+    pool = Pool()
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
