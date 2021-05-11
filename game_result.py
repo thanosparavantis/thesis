@@ -7,6 +7,8 @@ from game import Game
 
 
 class GameResult:
+    pb = Pushbullet(api_key='o.Ni4QO9yfo4vKFNeSrlNMFxYfdsiB5CaP')
+
     def __init__(self, genome: DefaultGenome = None, game: Game = None, game_json: dict = None):
         if game_json:
             self.genome_key = game_json['genome_key'] if 'genome_key' in game_json else 0
@@ -49,8 +51,7 @@ class GameResult:
                 self.winner = 'Tie'
 
     def notify_pushbullet(self):
-        pb = Pushbullet(api_key='o.Ni4QO9yfo4vKFNeSrlNMFxYfdsiB5CaP')
-        pb.push_note(
+        self.pb.push_note(
             title=f'Generation TEST',
             body=inspect.cleandoc(f"""
                 Genome: {self.genome_key}
