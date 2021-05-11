@@ -58,10 +58,10 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
-        ckp_list = glob.glob(f'{folder}/*')
+        ckp_list = get_folder_contents(f'{folder}')
 
         if len(ckp_list) > 0:
-            ckp_file = max(ckp_list, key=os.path.getctime)
+            ckp_file = ckp_list[-1]
             print(f'Loading checkpoint: {ckp_file}')
             pop = Checkpointer.restore_checkpoint(ckp_file)
         else:
