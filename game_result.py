@@ -52,14 +52,11 @@ class GameResult:
 
     def notify_pushbullet(self):
         self.pb.push_note(
-            title=f'Generation TEST',
+            title=f'Genome {self.genome_key}',
             body=inspect.cleandoc(f"""
-                Genome: {self.genome_key}
                 Fitness: {self.fitness:>.4f}
-                Blue Tiles: {self.blue_tiles}
-                Red Tiles: {self.red_tiles}
-                Blue Troops: {self.blue_troops}
-                Red Troops: {self.red_troops}
+                Tiles: {self.blue_tiles} / {self.red_tiles}
+                Troops: {self.blue_troops} / {self.red_troops}
                 Winner: {self.winner}
             """))
 
