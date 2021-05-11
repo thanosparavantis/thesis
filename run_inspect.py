@@ -2,9 +2,8 @@ import json
 
 from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
-from game_map import GameMap
 from game_result import GameResult
-from shared import print_signature, pop_setup, play_game, game_setup
+from shared import print_signature, pop_setup, play_game, game_setup, get_folder_contents
 
 
 def main():
@@ -13,12 +12,16 @@ def main():
 
     preset = int(input('Enter game preset> '))
 
-    ckp_number = int(input('Enter checkpoint number> '))
+    ckp_files = get_folder_contents(f'./game-results-{preset}')
+
+    print(f"Valid game result files: {', '.join(ckp_files)}")
+
+    ckp_number = int(input('Enter game result number> '))
     population = pop_setup(neat_config, preset, ckp_number)
 
-    game_results_file = open(f'./game-results-{preset}/game-result-{ckp_number}.json', 'r')
-    game_results = json.load(game_results_file)
-    game_results_file.close()
+    file = open(f'./game-results-{preset}/game-result-{ckp_number}.json', 'r')
+    game_results = json.load(file)
+    file.close()
     game_results = [GameResult(game_json=game_json) for game_json in game_results]
 
     print()

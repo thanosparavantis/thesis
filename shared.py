@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import re
 from multiprocessing import Pool, Lock, Manager
 from multiprocessing.queues import Queue
 from typing import Dict, Tuple, List
@@ -10,7 +11,7 @@ from neat.nn import FeedForwardNetwork
 
 from game import Game
 from game_map import GameMap
-from game_presets import GamePresetOne, GamePresetTwo
+from game_presets import ConquerEasyEnemyFastGame, ConquerHardEnemyFastGame, ExpandAloneFastGame
 from game_result import GameResult
 
 
@@ -27,11 +28,21 @@ def print_signature(title):
 
 def game_setup(preset: int) -> Game:
     if preset == 1:
-        return GamePresetOne()
+        return ConquerEasyEnemyFastGame()
     elif preset == 2:
-        return GamePresetTwo()
+        return ConquerHardEnemyFastGame()
+    elif preset == 3:
+        return ExpandAloneFastGame()
     else:
         return Game()
+
+
+def get_folder_contents(path) -> List[str]:
+    files = os.listdir(path)
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    files = sorted(files, key=alphanum_key)
+    return files
 
 
 def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Population:
@@ -94,7 +105,7 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
 
     if generation > 0:
         number = generation - 1
-        with open(f'{gr_folder}/game-result-{number}.json', 'a') as file:
+        with open(f'{gr_folder}/game-result-{number}.json', 'w') as file:
             json.dump(game_results, file, indent=2)
 
     print()

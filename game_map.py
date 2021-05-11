@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 from collections import defaultdict
 from typing import Tuple, Dict
@@ -235,6 +236,7 @@ class GameMap:
             plt.pause(0.001)
 
     def save(self, player_move: Dict = None, render: bool = True) -> None:
+
         if not os.path.isdir(self.save_path):
             os.mkdir(self.save_path)
 

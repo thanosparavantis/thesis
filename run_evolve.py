@@ -10,7 +10,8 @@ def main():
     preset = int(input('Enter game preset> '))
     population = pop_setup(config, preset)
 
-    population.run(lambda genomes, config: evaluate_fitness(preset, population.generation, genomes, config), 100)
+    while True:
+        population.run(lambda genomes, config: evaluate_fitness(preset, population.generation, genomes, config), 1)
 
 
 if __name__ == '__main__':

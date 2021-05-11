@@ -122,8 +122,12 @@ class Game:
         self.rounds += 1
 
     def production_move(self, source_tile: Tuple[int, int]) -> None:
+        player = self.get_player(self.player_id)
+
         s_i, s_j = source_tile
         self.map_troops[s_i, s_j] += 1
+
+        player.production_moves += 1
 
     def is_production_move_valid(self, source_tile: Tuple[int, int]) -> bool:
         my_tiles = self.get_tiles(self.player_id)
@@ -140,7 +144,6 @@ class Game:
 
     def attack_move(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> None:
         player = self.get_player(self.player_id)
-        enemy_id = Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
 
         s_i, s_j = source_tile
         t_i, t_j = target_tile
@@ -152,19 +155,15 @@ class Game:
 
         defenders = self.map_troops[t_i, t_j]
 
-        if self.map_owners[t_i, t_j] == enemy_id:
-            player.attacks += 1
-
         if defenders < attackers:
             self.map_owners[t_i, t_j] = self.player_id
-
-            if self.map_owners[t_i, t_j] == enemy_id:
-                player.attacks += 1
 
         self.map_troops[t_i, t_j] = abs(defenders - attackers)
 
         if self.map_troops[t_i, t_j] < Game.TileTroopMin:
             self.map_owners[t_i, t_j] = Game.NaturePlayer
+
+        player.attack_moves += 1
 
     def is_attack_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> bool:
         my_tiles = self.get_tiles(self.player_id)
@@ -191,6 +190,8 @@ class Game:
         return True
 
     def transport_move(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], transport: int) -> None:
+        player = self.get_player(self.player_id)
+
         s_i, s_j = source_tile
         t_i, t_j = target_tile
 
@@ -200,6 +201,8 @@ class Game:
             self.map_owners[s_i, s_j] = Game.NaturePlayer
 
         self.map_troops[t_i, t_j] += transport
+
+        player.transport_moves += 1
 
     def is_transport_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], transport: int) -> bool:
         my_tiles = self.get_tiles(self.player_id)

@@ -3,7 +3,11 @@ venv/
 __pycache__/
 logs/
 games/
-checkpoints-1/
+checkpoints-1a/
 checkpoints-2/
-game-results-1/
+checkpoints-3/
+checkpoints-4/
+game-results-1a/
 game-results-2/
+game-results-3/
+game-results-4/
