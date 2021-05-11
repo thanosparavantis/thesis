@@ -1,9 +1,11 @@
 import glob
+import inspect
 import json
 import os
 import re
 from multiprocessing import Pool, Lock, Manager
 from multiprocessing.queues import Queue
+from operator import attrgetter
 from typing import Dict, Tuple, List
 
 from neat import Checkpointer, Population, StdOutReporter, StatisticsReporter, DefaultGenome, Config
@@ -13,7 +15,7 @@ from game import Game
 from game_map import GameMap
 from game_presets import ConquerEasyEnemyFastGame, ConquerHardEnemyFastGame, ExpandAloneFastGame
 from game_result import GameResult
-
+from pushbullet import Pushbullet
 
 def print_signature(title):
     print('=' * 50)
@@ -93,20 +95,25 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
         [preset, genome, config, lock, queue] for genome_id, genome in genomes
     ])
 
-    game_results = []
+    gs_list = []
+    gs_json = []
 
     while not queue.empty():
         game_result = queue.get()  # type: GameResult
-        game_results.append(vars(game_result))
+        gs_list.append(game_result)
+        gs_json.append(vars(game_result))
         genome = list(filter(lambda item: item[0] == game_result.genome_key, genomes))[0][1]
         genome.fitness = game_result.fitness
 
-    game_results.sort(key=lambda game_json: (game_json['fitness']), reverse=True)
+    gs_best = max(gs_list, key=attrgetter('fitness'))
+    gs_best.notify_pushbullet()
+
+    gs_json.sort(key=lambda game_json: (game_json['fitness']), reverse=True)
 
     if generation > 0:
         number = generation - 1
         with open(f'{gr_folder}/game-result-{number}.json', 'w') as file:
-            json.dump(game_results, file, indent=2)
+            json.dump(gs_json, file, indent=2)
 
     print()
 

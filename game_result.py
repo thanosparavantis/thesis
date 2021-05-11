@@ -1,4 +1,7 @@
+import inspect
+
 from neat import DefaultGenome
+from pushbullet import Pushbullet
 
 from game import Game
 
@@ -12,7 +15,8 @@ class GameResult:
             self.red_tiles = game_json['red_tiles'] if 'red_tiles' in game_json else 0
             self.blue_troops = game_json['blue_troops'] if 'blue_troops' in game_json else 0
             self.red_troops = game_json['red_troops'] if 'red_troops' in game_json else 0
-            self.blue_production_moves = game_json['blue_production_moves'] if 'blue_production_moves' in game_json else 0
+            self.blue_production_moves = game_json[
+                'blue_production_moves'] if 'blue_production_moves' in game_json else 0
             self.red_production_moves = game_json['red_production_moves'] if 'red_production_moves' in game_json else 0
             self.blue_attack_moves = game_json['blue_attack_moves'] if 'blue_attack_moves' in game_json else 0
             self.red_attack_moves = game_json['red_attack_moves'] if 'red_attack_moves' in game_json else 0
@@ -43,6 +47,20 @@ class GameResult:
                 self.winner = 'Red'
             else:
                 self.winner = 'Tie'
+
+    def notify_pushbullet(self):
+        pb = Pushbullet(api_key='o.Ni4QO9yfo4vKFNeSrlNMFxYfdsiB5CaP')
+        pb.push_note(
+            title=f'Generation TEST',
+            body=inspect.cleandoc(f"""
+                Genome: {self.genome_key}
+                Fitness: {self.fitness:>.4f}
+                Blue Tiles: {self.blue_tiles}
+                Red Tiles: {self.red_tiles}
+                Blue Troops: {self.blue_troops}
+                Red Troops: {self.red_troops}
+                Winner: {self.winner}
+            """))
 
     def __str__(self):
         return f'Genome: {self.genome_key:>4}' \
