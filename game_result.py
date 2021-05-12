@@ -59,6 +59,7 @@ class GameResult:
                 Fitness: {self.fitness:>.4f}
                 Tiles: {self.blue_tiles} / {self.red_tiles}
                 Troops: {self.blue_troops} / {self.red_troops}
+                Rounds: {self.rounds}
                 Winner: {self.winner}
             """))
 
