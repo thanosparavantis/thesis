@@ -37,8 +37,8 @@ class ConquerEasyEnemyFastGame(Game):
         enemy_tiles = self.get_tile_count(Game.RedPlayer)
         enemy_troops = self.get_troop_count(Game.RedPlayer)
 
-        game_won = 30 if self.get_winner() == Game.BluePlayer else 0
-        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 20) if self.get_winner() == Game.BluePlayer else 0
+        game_won = 20 if self.get_winner() == Game.BluePlayer else 0
+        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 30) if self.get_winner() == Game.BluePlayer else 0
         enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 30
         enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 20
 
@@ -75,8 +75,8 @@ class ConquerHardEnemyFastGame(Game):
         enemy_tiles = self.get_tile_count(Game.RedPlayer)
         enemy_troops = self.get_troop_count(Game.RedPlayer)
 
-        game_won = 30 if self.get_winner() == Game.BluePlayer else 0
-        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 20) if self.get_winner() == Game.BluePlayer else 0
+        game_won = 20 if self.get_winner() == Game.BluePlayer else 0
+        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 30) if self.get_winner() == Game.BluePlayer else 0
         enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 30
         enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 20
 
@@ -115,8 +115,8 @@ class ExpandAloneFastGame(Game):
         nature_start_tiles = 36
         nature_tiles = self.get_tile_count(Game.NaturePlayer)
 
-        game_won = 30 if self.get_winner() == Game.BluePlayer else 0
-        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 20) if self.get_winner() == Game.BluePlayer else 0
+        game_won = 20 if self.get_winner() == Game.BluePlayer else 0
+        game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 30) if self.get_winner() == Game.BluePlayer else 0
         my_tiles_gained = ((nature_start_tiles - nature_tiles) / nature_start_tiles) * 50
 
         return sum([

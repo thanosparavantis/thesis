@@ -20,7 +20,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 10000
+    MaxRounds = 5000
 
     def __init__(self):
         self.state_parser = None
@@ -50,7 +50,7 @@ class Game:
                f'{"":2}' \
                f'Troops: {blue_troops:>3} / {red_troops:>3}' \
                f'{"":2}' \
-               f'Fitness: {fitness:>6.1f}' \
+               f'Fitness: {fitness:>8.1f}' \
                f'{"":2}' \
                f'Winner: {winner:>4}'
 

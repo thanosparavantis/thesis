@@ -126,7 +126,7 @@ def process_game(preset: int, genome: DefaultGenome, config: Config, lock: Lock,
 
     lock.acquire()
     counter.value += 1
-    print(f'{counter.value}. {game_result}')
+    print(f'{counter.value:>3}. {game_result}')
     lock.release()
 
     queue.put(game_result)
