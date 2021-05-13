@@ -3,7 +3,7 @@ import inspect
 import json
 import os
 import re
-from multiprocessing import Pool, Lock, Manager
+from multiprocessing import Pool, Lock, Manager, Value
 from multiprocessing.queues import Queue
 from operator import attrgetter
 from typing import Dict, Tuple, List
@@ -82,6 +82,7 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
+    counter = manager.Value('i', 0)
 
     gr_folder = f'./game-results-{preset}'
 
@@ -92,7 +93,7 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
         os.remove(f'{gr_folder}/game-result-{generation}.json')
 
     pool.starmap(process_game, [
-        [preset, genome, config, lock, queue] for genome_id, genome in genomes
+        [preset, genome, config, lock, queue, counter] for genome_id, genome in genomes
     ])
 
     gs_list = []
@@ -118,13 +119,14 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
     print()
 
 
-def process_game(preset: int, genome: DefaultGenome, config: Config, lock: Lock, queue: Queue) -> None:
+def process_game(preset: int, genome: DefaultGenome, config: Config, lock: Lock, queue: Queue, counter: Value) -> None:
     game = game_setup(preset)
     play_game(genome, config, game, False)
     game_result = GameResult(genome, game)
 
     lock.acquire()
-    print(game_result)
+    counter.value += 1
+    print(f'{counter.value}. {game_result}')
     lock.release()
 
     queue.put(game_result)

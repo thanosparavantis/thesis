@@ -72,6 +72,6 @@ class GameResult:
                f'{"":2}' \
                f'Troops: {self.blue_troops:>3} / {self.red_troops:>3}' \
                f'{"":2}' \
-               f'Fitness: {self.fitness:>6.1f}' \
+               f'Fitness: {self.fitness:>8.4f}' \
                f'{"":2}' \
                f'Winner: {self.winner:>4}'

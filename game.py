@@ -20,7 +20,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 500
+    MaxRounds = 10000
 
     def __init__(self):
         self.state_parser = None
@@ -35,6 +35,24 @@ class Game:
         self.states = None
         self.random = None  # type: Generator
         self.reset_game()
+
+    def __str__(self):
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        red_tiles = self.get_tile_count(Game.RedPlayer)
+        blue_troops = self.get_troop_count(Game.BluePlayer)
+        red_troops = self.get_troop_count(Game.RedPlayer)
+        fitness = self.get_fitness()
+        winner = self.get_winner()
+
+        return f'Rounds: {self.rounds:>4}' \
+               f'{"":2}' \
+               f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
+               f'{"":2}' \
+               f'Troops: {blue_troops:>3} / {red_troops:>3}' \
+               f'{"":2}' \
+               f'Fitness: {fitness:>6.1f}' \
+               f'{"":2}' \
+               f'Winner: {winner:>4}'
 
     @staticmethod
     def copy_of(other_game: 'Game') -> 'Game':
@@ -67,10 +85,7 @@ class Game:
         return map_owners, map_troops
 
     def get_fitness(self) -> float:
-        game_won = 50 if self.get_winner() == Game.BluePlayer else 0
-        time_bonus = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 50) if self.get_winner() != Game.RedPlayer else 0
-        # expanding = (self.get_tile_count(Game.BluePlayer) / Game.MapSize) * 30
-        return float(game_won + time_bonus)
+        return 0.0
 
     def reset_game(self, create_game_map: bool = True) -> None:
         from state_parser import StateParser
@@ -311,7 +326,10 @@ class Game:
         return lookup[tile]
 
     def has_ended(self) -> bool:
-        return self.rounds >= Game.MaxRounds or self.get_tile_count(Game.BluePlayer) == 0 or self.get_tile_count(Game.RedPlayer) == 0
+        return self.rounds >= Game.MaxRounds \
+               or self.get_tile_count(Game.BluePlayer) == 0 \
+               or self.get_tile_count(Game.RedPlayer) == 0 \
+               or self.is_state_repeated()
 
     def get_winner(self) -> int:
         blue_tiles = self.get_tile_count(Game.BluePlayer)

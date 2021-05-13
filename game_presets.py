@@ -36,18 +36,15 @@ class ConquerEasyEnemyFastGame(Game):
         enemy_start_troops = 40
         enemy_tiles = self.get_tile_count(Game.RedPlayer)
         enemy_troops = self.get_troop_count(Game.RedPlayer)
-        nature_start_tiles = 30
-        nature_tiles = self.get_tile_count(Game.NaturePlayer)
 
         game_won = 30 if self.get_winner() == Game.BluePlayer else 0
         game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 20) if self.get_winner() == Game.BluePlayer else 0
-        my_tiles_gained = ((nature_start_tiles - nature_tiles) / Game.MapSize) * 10
-        enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 25
-        enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 15
+        enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 30
+        enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 20
 
         return sum([
             game_won, game_won_time,
-            my_tiles_gained, enemy_tiles_lost, enemy_troops_lost
+            enemy_tiles_lost, enemy_troops_lost
         ])
 
 
@@ -77,18 +74,15 @@ class ConquerHardEnemyFastGame(Game):
         enemy_start_troops = 222
         enemy_tiles = self.get_tile_count(Game.RedPlayer)
         enemy_troops = self.get_troop_count(Game.RedPlayer)
-        nature_start_tiles = 17
-        nature_tiles = self.get_tile_count(Game.NaturePlayer)
 
         game_won = 30 if self.get_winner() == Game.BluePlayer else 0
         game_won_time = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 20) if self.get_winner() == Game.BluePlayer else 0
-        my_tiles_gained = ((nature_start_tiles - nature_tiles) / Game.MapSize) * 10
-        enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 25
-        enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 15
+        enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 30
+        enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 20
 
         return sum([
             game_won, game_won_time,
-            my_tiles_gained, enemy_tiles_lost, enemy_troops_lost
+            enemy_tiles_lost, enemy_troops_lost
         ])
 
 
@@ -130,7 +124,9 @@ class ExpandAloneFastGame(Game):
         ])
 
     def has_ended(self) -> bool:
-        return self.rounds >= Game.MaxRounds or self.get_tile_count(Game.NaturePlayer) == 0
+        return self.rounds >= Game.MaxRounds \
+               or self.get_tile_count(Game.NaturePlayer) == 0 \
+               or self.is_state_repeated()
 
     def get_winner(self) -> int:
         if self.get_tile_count(Game.NaturePlayer) == 0:
