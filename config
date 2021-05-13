@@ -31,7 +31,7 @@
     enabled_mutate_rate                 = 0.01
 
     feed_forward                        = True
-    initial_connection                  = unconnected
+    initial_connection                  = full
 
     node_add_prob                       = 0.2
     node_delete_prob                    = 0.2

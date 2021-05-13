@@ -35,10 +35,8 @@ def main():
     blue_genome = blue_pop.population[int(blue_key)]
     red_genome = red_pop.population[int(red_key)]
     game = Game()
-    game_map = GameMap()
-    game_map.game = game
 
-    play_game(blue_genome, red_genome, neat_config, game, True, game_map)
+    play_game(blue_genome, red_genome, neat_config, game, True)
 
     print()
     input('Press Enter to continue...')

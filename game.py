@@ -19,14 +19,14 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 500
+    MaxRounds = 5000
 
     def __init__(self):
         self.state_parser = None
         self.game_map = None
-        self.nature_player = None
-        self.blue_player = None
-        self.red_player = None
+        self.nature_player = None  # type: GamePlayer
+        self.blue_player = None  # type: GamePlayer
+        self.red_player = None  # type: GamePlayer
         self.map_owners = None
         self.map_troops = None
         self.player_id = None
@@ -80,17 +80,24 @@ class Game:
         ])
 
     def get_fitness(self) -> Tuple[float, float]:
-        # blue_won = 25 if self.get_winner() == Game.BluePlayer else 0
-        # blue_fast = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 25) if self.get_winner() != Game.RedPlayer else 0
-        # red_remaining = (abs(self.get_tile_count(Game.RedPlayer) - Game.MapSize) / Game.MapSize) * 25
-        # blue_grow = (self.get_tile_count(Game.BluePlayer) / Game.MapSize) * 100
-        blue_fit = float(self.blue_player.fitness)
+        time_reward = (self.rounds / Game.MaxRounds) * 25
+        time_penalty = (abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 25
 
-        # red_won = 25 if self.get_winner() == Game.RedPlayer else 0
-        # red_fast = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 25) if self.get_winner() != Game.BluePlayer else 0
-        # blue_remaining = (abs(self.get_tile_count(Game.BluePlayer) - Game.MapSize) / Game.MapSize) * 25
-        # red_grow = (self.get_tile_count(Game.RedPlayer) / Game.MapSize) * 100
-        red_fit = float(self.red_player.fitness)
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        blue_troops = self.get_troop_count(Game.BluePlayer)
+        blue_tile_prog = (blue_tiles / Game.MapSize) * 30
+        blue_troop_prog = (blue_troops / (Game.MapSize * Game.TileTroopMax)) * 20
+        blue_won = 25 if self.get_winner() == Game.BluePlayer else 0
+        blue_time = time_penalty if self.get_winner() == Game.BluePlayer else time_reward
+        blue_fit = sum([blue_tile_prog, blue_troop_prog, blue_won, blue_time])
+
+        red_tiles = self.get_tile_count(Game.RedPlayer)
+        red_troops = self.get_troop_count(Game.RedPlayer)
+        red_tile_prog = (red_tiles / Game.MapSize) * 50
+        red_troop_prog = (red_troops / (Game.MapSize * Game.TileTroopMax)) * 20
+        red_won = 25 if self.get_winner() == Game.RedPlayer else 0
+        red_time = time_penalty if self.get_winner() == Game.RedPlayer else time_reward
+        red_fit = sum([red_tile_prog, red_troop_prog, red_won, red_time])
 
         return blue_fit, red_fit
 
@@ -129,8 +136,12 @@ class Game:
         self.rounds += 1
 
     def production_move(self, source_tile: Tuple[int, int]) -> None:
+        player = self.get_player(self.player_id)
+
         s_i, s_j = source_tile
         self.map_troops[s_i, s_j] += 1
+
+        player.production_moves += 1
 
     def is_production_move_valid(self, source_tile: Tuple[int, int]) -> bool:
         my_tiles = self.get_tiles(self.player_id)
@@ -147,8 +158,6 @@ class Game:
 
     def attack_move(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> None:
         player = self.get_player(self.player_id)
-        enemy_id = Game.BluePlayer if self.player_id == Game.RedPlayer else Game.RedPlayer
-        enemy = self.get_player(enemy_id)
 
         s_i, s_j = source_tile
         t_i, t_j = target_tile
@@ -160,20 +169,6 @@ class Game:
 
         defenders = self.map_troops[t_i, t_j]
 
-        if self.map_owners[s_i, s_j] == self.player_id:
-            if self.map_owners[t_i, t_j] == enemy_id:
-                if attackers > defenders:
-                    player.fitness += 1
-                    enemy.fitness -= 1
-                elif attackers == defenders:
-                    enemy.fitness -= 1
-            elif self.map_owners[t_i, t_j] == Game.NaturePlayer:
-                if attackers > defenders:
-                    player.fitness += 1
-
-        if defenders > attackers:
-            player.fitness -= 1
-
         if defenders < attackers:
             self.map_owners[t_i, t_j] = self.player_id
 
@@ -181,6 +176,8 @@ class Game:
 
         if self.map_troops[t_i, t_j] < Game.TileTroopMin:
             self.map_owners[t_i, t_j] = Game.NaturePlayer
+
+        player.attack_moves += 1
 
     def is_attack_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], attackers: int) -> bool:
         my_tiles = self.get_tiles(self.player_id)
@@ -216,11 +213,13 @@ class Game:
 
         if self.map_troops[s_i, s_j] < Game.TileTroopMin:
             self.map_owners[s_i, s_j] = Game.NaturePlayer
-            player.fitness -= 1
 
         self.map_troops[t_i, t_j] += transport
 
-    def is_transport_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], transport: int) -> bool:
+        player.transport_moves += 1
+
+    def is_transport_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int],
+                                transport: int) -> bool:
         my_tiles = self.get_tiles(self.player_id)
 
         if source_tile not in my_tiles:
@@ -327,7 +326,10 @@ class Game:
         return lookup[tile]
 
     def has_ended(self) -> bool:
-        return self.rounds >= Game.MaxRounds or self.get_tile_count(Game.BluePlayer) == 0 or self.get_tile_count(Game.RedPlayer) == 0
+        return self.rounds >= Game.MaxRounds \
+               or self.get_tile_count(Game.BluePlayer) == 0 \
+               or self.get_tile_count(Game.RedPlayer) == 0 \
+               or self.is_state_repeated()
 
     def get_winner(self) -> int:
         blue_tiles = self.get_tile_count(Game.BluePlayer)

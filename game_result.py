@@ -13,6 +13,12 @@ class GameResult:
             self.red_tiles = game_json['red_tiles']
             self.blue_troops = game_json['blue_troops']
             self.red_troops = game_json['red_troops']
+            self.blue_production_moves = game_json['blue_production_moves']
+            self.red_production_moves = game_json['red_production_moves']
+            self.blue_attack_moves = game_json['blue_attack_moves']
+            self.red_attack_moves = game_json['red_attack_moves']
+            self.blue_transport_moves = game_json['blue_transport_moves']
+            self.red_transport_moves = game_json['red_transport_moves']
             self.blue_fitness = game_json['blue_fitness']
             self.red_fitness = game_json['red_fitness']
             self.winner = game_json['winner']
@@ -24,6 +30,12 @@ class GameResult:
             self.red_tiles = game.get_tile_count(Game.RedPlayer)
             self.blue_troops = game.get_troop_count(Game.BluePlayer)
             self.red_troops = game.get_troop_count(Game.RedPlayer)
+            self.blue_production_moves = game.blue_player.production_moves
+            self.red_production_moves = game.red_player.production_moves
+            self.blue_attack_moves = game.blue_player.attack_moves
+            self.red_attack_moves = game.red_player.attack_moves
+            self.blue_transport_moves = game.blue_player.transport_moves
+            self.red_transport_moves = game.red_player.transport_moves
             self.blue_fitness, self.red_fitness = game.get_fitness()
 
             winner_id = game.get_winner()
@@ -44,6 +56,6 @@ class GameResult:
                f'{"":2}' \
                f'Troops: {self.blue_troops:>3} / {self.red_troops:>3}' \
                f'{"":2}' \
-               f'Fitness: {self.blue_fitness:>6.1f} / {self.red_fitness:<6.1f}' \
+               f'Fitness: {self.blue_fitness:>8.4f} / {self.red_fitness:<8.4f}' \
                f'{"":2}' \
                f'Winner: {self.winner:>4}'

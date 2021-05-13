@@ -1,11 +1,11 @@
-import glob
+import json
 import json
 import os
-import random
+import re
 import secrets
-from multiprocessing import Pool, Lock, Manager
+from multiprocessing import Pool, Lock, Manager, Value
 from multiprocessing.queues import Queue
-from typing import Dict, Tuple, List
+from typing import Dict, List
 
 from neat import Checkpointer, Population, StdOutReporter, StatisticsReporter, DefaultGenome, Config
 from neat.nn import FeedForwardNetwork
@@ -27,6 +27,14 @@ def print_signature(title):
     print()
 
 
+def get_folder_contents(path) -> List[str]:
+    files = os.listdir(path)
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    files = sorted(files, key=alphanum_key)
+    return files
+
+
 def pop_blue_setup(neat_config: Config) -> Population:
     return pop_setup(neat_config, 'blue')
 
@@ -42,10 +50,10 @@ def pop_setup(neat_config: Config, folder: str) -> Population:
     if not os.path.isdir(f'./checkpoints/{folder}'):
         os.mkdir(f'./checkpoints/{folder}')
 
-    ckp_list = glob.glob(f'./checkpoints/{folder}/*')
+    ckp_list = get_folder_contents(f'./checkpoints/{folder}')
 
     if len(ckp_list) > 0:
-        ckp_file = max(ckp_list, key=os.path.getctime)
+        ckp_file = f'./checkpoints/{folder}/{ckp_list[-1]}'
         print(f'Loading checkpoint: {ckp_file}')
         pop = Checkpointer.restore_checkpoint(ckp_file)
     else:
@@ -53,9 +61,7 @@ def pop_setup(neat_config: Config, folder: str) -> Population:
         pop = Population(neat_config)
 
     pop.add_reporter(StdOutReporter(True))
-
     pop.add_reporter(StatisticsReporter())
-
     pop.add_reporter(Checkpointer(1, 300, f'./checkpoints/{folder}/checkpoint-'))
 
     return pop
@@ -69,10 +75,11 @@ def evaluate_fitness(blue_pop: Population, red_pop: Population, config: Config) 
     red_genomes = list(iteritems(red_pop.population))
     generation = blue_pop.generation
 
-    pool = Pool(processes=13)
+    pool = Pool()
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
+    counter = manager.Value('i', 0)
 
     if not os.path.isdir('./game-results'):
         os.mkdir('./game-results')
@@ -104,7 +111,7 @@ def evaluate_fitness(blue_pop: Population, red_pop: Population, config: Config) 
 
     pool.starmap(
         process_game,
-        [[blue_genome, red_genome, config, lock, queue] for blue_genome, red_genome in genome_pairs]
+        [[blue_genome, red_genome, config, lock, queue, counter] for blue_genome, red_genome in genome_pairs]
     )
 
     game_results = []
@@ -130,19 +137,22 @@ def evaluate_fitness(blue_pop: Population, red_pop: Population, config: Config) 
     print()
 
 
-def process_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, lock: Lock, queue: Queue) -> None:
+def process_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, lock: Lock, queue: Queue,
+                 counter: Value) -> None:
     game = Game()
     play_game(blue_genome, red_genome, config, game, False)
     game_result = GameResult(blue_genome, red_genome, game)
 
     lock.acquire()
-    print(game_result)
+    counter.value += 1
+    print(f'{counter.value:>3}. {game_result}')
     lock.release()
 
     queue.put(game_result)
 
 
-def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, game: Game, render: bool, game_map: GameMap = None) -> None:
+def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Config, game: Game, render: bool,
+              game_map: GameMap = None) -> None:
     if game_map is None:
         game.reset_game(create_game_map=True)
     else:
@@ -155,7 +165,7 @@ def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Con
     if render:
         game.game_map.blue_key = blue_genome.key
         game.game_map.red_key = red_genome.key
-        game.game_map.render()
+        game.game_map.save()
 
     game.increase_round()
 
@@ -164,7 +174,7 @@ def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Con
         player_move = play_move(blue_net, game)
 
         if render:
-            game.game_map.render(player_move=player_move)
+            game.game_map.save(player_move=player_move)
 
         if game.has_ended():
             break
@@ -173,7 +183,7 @@ def play_game(blue_genome: DefaultGenome, red_genome: DefaultGenome, config: Con
         player_move = play_move(red_net, game)
 
         if render:
-            game.game_map.render(player_move=player_move)
+            game.game_map.save(player_move=player_move)
 
         if game.has_ended():
             break

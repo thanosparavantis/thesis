@@ -1,6 +1,4 @@
 venv/
 .idea/
 __pycache__/
-checkpoints/
 logs/
-game-results/
