@@ -1,12 +1,9 @@
-import argparse
-
 from neat import DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, Config
 
 from shared import pop_setup, print_signature, evaluate_fitness, parse_args
 
 
 def main():
-
     print_signature("Evolution Script")
 
     args = parse_args()

@@ -1,6 +1,5 @@
 import argparse
 import json
-import json
 import os
 import re
 from argparse import Namespace
