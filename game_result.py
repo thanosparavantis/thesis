@@ -11,21 +11,20 @@ class GameResult:
 
     def __init__(self, genome: DefaultGenome = None, game: Game = None, game_json: dict = None):
         if game_json:
-            self.genome_key = game_json['genome_key'] if 'genome_key' in game_json else 0
-            self.rounds = game_json['rounds'] if 'rounds' in game_json else 0
-            self.blue_tiles = game_json['blue_tiles'] if 'blue_tiles' in game_json else 0
-            self.red_tiles = game_json['red_tiles'] if 'red_tiles' in game_json else 0
-            self.blue_troops = game_json['blue_troops'] if 'blue_troops' in game_json else 0
-            self.red_troops = game_json['red_troops'] if 'red_troops' in game_json else 0
-            self.blue_production_moves = game_json[
-                'blue_production_moves'] if 'blue_production_moves' in game_json else 0
-            self.red_production_moves = game_json['red_production_moves'] if 'red_production_moves' in game_json else 0
-            self.blue_attack_moves = game_json['blue_attack_moves'] if 'blue_attack_moves' in game_json else 0
-            self.red_attack_moves = game_json['red_attack_moves'] if 'red_attack_moves' in game_json else 0
-            self.blue_transport_moves = game_json['blue_transport_moves'] if 'blue_transport_moves' in game_json else 0
-            self.red_transport_moves = game_json['red_transport_moves'] if 'red_transport_moves' in game_json else 0
-            self.fitness = game_json['fitness'] if 'fitness' in game_json else 0.0
-            self.winner = game_json['winner'] if 'winner' in game_json else 'Tie'
+            self.genome_key = game_json['genome_key']
+            self.rounds = game_json['rounds']
+            self.blue_tiles = game_json['blue_tiles']
+            self.red_tiles = game_json['red_tiles']
+            self.blue_troops = game_json['blue_troops']
+            self.red_troops = game_json['red_troops']
+            self.blue_production_moves = game_json['blue_production_moves']
+            self.red_production_moves = game_json['red_production_moves']
+            self.blue_attack_moves = game_json['blue_attack_moves']
+            self.red_attack_moves = game_json['red_attack_moves']
+            self.blue_transport_moves = game_json['blue_transport_moves']
+            self.red_transport_moves = game_json['red_transport_moves']
+            self.fitness = game_json['fitness']
+            self.winner = game_json['winner']
         else:
             self.genome_key = genome.key
             self.rounds = game.rounds

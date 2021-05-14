@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import time
 from argparse import Namespace
 from multiprocessing import Pool, Lock, Manager, Value
 from multiprocessing.queues import Queue
@@ -140,11 +141,14 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
 
 def process_game(preset: int, genome: DefaultGenome, config: Config, lock: Lock, queue: Queue, counter: Value) -> None:
     game = game_setup(preset)
+    start = time.time()
     play_game(genome, config, game, False)
+    end = time.time()
     game_result = GameResult(genome, game)
 
     lock.acquire()
     counter.value += 1
+    print(end - start)
     print(f'{counter.value:>3}. {game_result}')
     lock.release()
 
