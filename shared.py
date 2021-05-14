@@ -1,8 +1,9 @@
-import glob
-import inspect
+import argparse
+import json
 import json
 import os
 import re
+from argparse import Namespace
 from multiprocessing import Pool, Lock, Manager, Value
 from multiprocessing.queues import Queue
 from operator import attrgetter
@@ -15,17 +16,36 @@ from game import Game
 from game_map import GameMap
 from game_presets import ConquerEasyEnemyFastGame, ConquerHardEnemyFastGame, ExpandAloneFastGame
 from game_result import GameResult
-from pushbullet import Pushbullet
+
 
 def print_signature(title):
     print('=' * 50)
     print(f'  {title}')
     print('=' * 50)
     print('* Athanasios Paravantis')
-    print('* P16112')
     print('* thanosparavantis@gmail.com')
     print('=' * 50)
     print()
+
+
+def parse_args() -> Namespace:
+    parser = argparse.ArgumentParser(description='Runs NEAT algorithm.')
+
+    parser.add_argument(
+        '-p',
+        '--preset',
+        dest='preset',
+        metavar='ID',
+        type=int,
+        help='the preferred game preset to use for training',
+        required=True
+    )
+
+    args = parser.parse_args()
+
+    print(f'Selected game preset> {args.preset}')
+
+    return args
 
 
 def game_setup(preset: int) -> Game:
@@ -53,8 +73,8 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
 
     if ckp_number:
         ckp_file = f'{folder}/{filename}'
-        print(f'Loading predefined checkpoint: {ckp_file}')
         pop = Checkpointer.restore_checkpoint(ckp_file)
+        print(f'Loaded predefined checkpoint> {ckp_file}')
     else:
 
         if not os.path.isdir(folder):
@@ -64,8 +84,8 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
 
         if len(ckp_list) > 0:
             ckp_file = f'{folder}/{ckp_list[-1]}'
-            print(f'Loading checkpoint: {ckp_file}')
             pop = Checkpointer.restore_checkpoint(ckp_file)
+            print(f'Loaded checkpoint> {ckp_file}')
         else:
             print(f'Creating new population')
             pop = Population(neat_config)

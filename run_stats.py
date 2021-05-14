@@ -7,11 +7,15 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from game_result import GameResult
-from shared import get_folder_contents
+from shared import get_folder_contents, print_signature, parse_args
 
 
 def main():
-    preset = int(input('Enter game preset> '))  # type: int
+    print_signature("Training Statistics")
+
+    args = parse_args()
+
+    preset = args.preset
 
     gs_files = get_folder_contents(f'./game-results-{preset}')  # type: List[str]
 

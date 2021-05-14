@@ -3,21 +3,24 @@ import json
 from neat import Config, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
 from game_result import GameResult
-from shared import print_signature, pop_setup, play_game, game_setup, get_folder_contents
+from shared import print_signature, pop_setup, play_game, game_setup, get_folder_contents, parse_args
 
 
 def main():
     print_signature("Inspection Script")
-    neat_config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
-    preset = int(input('Enter game preset> '))
+    args = parse_args()
+
+    config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
+
+    preset = args.preset
 
     ckp_files = get_folder_contents(f'./game-results-{preset}')
 
     print(f"Valid game result files: {', '.join(ckp_files)}")
 
     ckp_number = int(input('Enter game result number> '))
-    population = pop_setup(neat_config, preset, ckp_number)
+    population = pop_setup(config, preset, ckp_number)
 
     file = open(f'./game-results-{preset}/game-result-{ckp_number}.json', 'r')
     game_results = json.load(file)
@@ -36,7 +39,7 @@ def main():
     genome = population.population[int(genome_key)]
     game = game_setup(preset)
 
-    play_game(genome, neat_config, game, True)
+    play_game(genome, config, game, True)
 
     print()
     input('Press Enter to continue...')
