@@ -20,7 +20,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 5000
+    MaxRounds = 500
 
     def __init__(self):
         self.state_parser = None
