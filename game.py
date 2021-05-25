@@ -20,7 +20,6 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 500
 
     def __init__(self):
         self.state_parser = None
@@ -86,6 +85,26 @@ class Game:
 
     def get_fitness(self) -> float:
         return 0.0
+
+    def get_max_rounds(self) -> int:
+        return 500
+
+    def has_ended(self) -> bool:
+        return self.rounds >= self.get_max_rounds() \
+               or self.get_tile_count(Game.BluePlayer) == 0 \
+               or self.get_tile_count(Game.RedPlayer) == 0 \
+               or self.is_state_repeated()
+
+    def get_winner(self) -> int:
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        red_tiles = self.get_tile_count(Game.RedPlayer)
+
+        if blue_tiles > 0 and red_tiles == 0:
+            return Game.BluePlayer
+        elif red_tiles > 0 and blue_tiles == 0:
+            return Game.RedPlayer
+
+        return Game.NaturePlayer
 
     def reset_game(self, create_game_map: bool = True) -> None:
         from state_parser import StateParser
@@ -219,7 +238,8 @@ class Game:
 
         player.transport_moves += 1
 
-    def is_transport_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int], transport: int) -> bool:
+    def is_transport_move_valid(self, source_tile: Tuple[int, int], target_tile: Tuple[int, int],
+                                transport: int) -> bool:
         my_tiles = self.get_tiles(self.player_id)
 
         if source_tile not in my_tiles:
@@ -324,20 +344,3 @@ class Game:
         }
 
         return lookup[tile]
-
-    def has_ended(self) -> bool:
-        return self.rounds >= Game.MaxRounds \
-               or self.get_tile_count(Game.BluePlayer) == 0 \
-               or self.get_tile_count(Game.RedPlayer) == 0 \
-               or self.is_state_repeated()
-
-    def get_winner(self) -> int:
-        blue_tiles = self.get_tile_count(Game.BluePlayer)
-        red_tiles = self.get_tile_count(Game.RedPlayer)
-
-        if blue_tiles > 0 and red_tiles == 0:
-            return Game.BluePlayer
-        elif red_tiles > 0 and blue_tiles == 0:
-            return Game.RedPlayer
-
-        return Game.NaturePlayer

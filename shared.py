@@ -97,7 +97,7 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
 
 
 def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
-    pool = Pool()
+    pool = Pool(os.cpu_count())
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
@@ -126,7 +126,7 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
         genome.fitness = game_result.fitness
 
     gs_best = max(gs_list, key=attrgetter('fitness'))
-    gs_best.notify_pushbullet(preset, generation)
+    # gs_best.notify_pushbullet(preset, generation)
 
     gs_json.sort(key=lambda game_json: (game_json['fitness']), reverse=True)
 
