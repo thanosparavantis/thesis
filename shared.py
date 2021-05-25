@@ -125,9 +125,6 @@ def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, Defa
         genome = list(filter(lambda item: item[0] == game_result.genome_key, genomes))[0][1]
         genome.fitness = game_result.fitness
 
-    gs_best = max(gs_list, key=attrgetter('fitness'))
-    # gs_best.notify_pushbullet(preset, generation)
-
     gs_json.sort(key=lambda game_json: (game_json['fitness']), reverse=True)
 
     if generation > 0:
