@@ -6,7 +6,7 @@ from numpy import ndarray
 from game import Game
 
 
-class ConquerEasyEnemyFastGame(Game):
+class BlueBeatRedEasy(Game):
     def __init__(self):
         super().__init__()
 
@@ -39,6 +39,7 @@ class ConquerEasyEnemyFastGame(Game):
 
         game_won = 20 if self.get_winner() == Game.BluePlayer else 0
         game_won_time = ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) * 30) if self.get_winner() == Game.BluePlayer else 0
+
         enemy_tiles_lost = ((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) * 30
         enemy_troops_lost = ((enemy_start_troops - enemy_troops) / enemy_start_troops) * 20
 
@@ -47,8 +48,11 @@ class ConquerEasyEnemyFastGame(Game):
             enemy_tiles_lost, enemy_troops_lost
         ])
 
+    def is_red_simulated(self) -> bool:
+        return False
 
-class ConquerHardEnemyFastGame(Game):
+
+class BlueBeatRedHard(Game):
     def __init__(self):
         super().__init__()
 
@@ -88,8 +92,11 @@ class ConquerHardEnemyFastGame(Game):
             enemy_tiles_lost, enemy_troops_lost
         ])
 
+    def is_red_simulated(self) -> bool:
+        return False
 
-class ExpandAloneFastGame(Game):
+
+class BlueExpandAlone(Game):
     def __init__(self):
         super().__init__()
 
@@ -129,6 +136,9 @@ class ExpandAloneFastGame(Game):
             game_won, game_won_time, my_tiles_gained
         ])
 
+    def is_red_simulated(self) -> bool:
+        return False
+
     def has_ended(self) -> bool:
         return self.rounds >= self.get_max_rounds() \
                or self.get_tile_count(Game.NaturePlayer) == 0 \
@@ -139,3 +149,19 @@ class ExpandAloneFastGame(Game):
             return Game.BluePlayer
         else:
             return Game.NaturePlayer
+
+
+class BlueAgainstRed(Game):
+    def get_fitness(self) -> float:
+        enemy_tiles = self.get_tile_count(Game.RedPlayer)
+        enemy_troops = self.get_troop_count(Game.RedPlayer)
+
+        game_won = 20 if self.get_winner() == Game.BluePlayer else 0
+        game_won_time = ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) * 30) if self.get_winner() == Game.BluePlayer else 0
+        enemy_tiles_lost = 30 - ((enemy_tiles / Game.MapSize) * 30)
+        enemy_troops_lost = 20 - ((enemy_troops / (Game.MapSize * Game.TileTroopMax)) * 20)
+
+        return sum([
+            game_won, game_won_time,
+            enemy_tiles_lost, enemy_troops_lost
+        ])

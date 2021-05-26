@@ -35,23 +35,23 @@ class Game:
         self.random = None  # type: Generator
         self.reset_game()
 
-    def __str__(self):
-        blue_tiles = self.get_tile_count(Game.BluePlayer)
-        red_tiles = self.get_tile_count(Game.RedPlayer)
-        blue_troops = self.get_troop_count(Game.BluePlayer)
-        red_troops = self.get_troop_count(Game.RedPlayer)
-        fitness = self.get_fitness()
-        winner = self.get_winner()
+    def reset_game(self, create_game_map: bool = True) -> None:
+        from state_parser import StateParser
+        from game_map import GameMap
 
-        return f'Rounds: {self.rounds:>4}' \
-               f'{"":2}' \
-               f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
-               f'{"":2}' \
-               f'Troops: {blue_troops:>3} / {red_troops:>3}' \
-               f'{"":2}' \
-               f'Fitness: {fitness:>8.1f}' \
-               f'{"":2}' \
-               f'Winner: {winner:>4}'
+        self.state_parser = StateParser()
+        self.state_parser.game = self
+        self.game_map = GameMap() if create_game_map else self.game_map
+        self.game_map.game = self
+        self.game_map.state_parser = self.state_parser
+        self.nature_player = GamePlayer('nature', '#D4D4D8')
+        self.blue_player = GamePlayer('blue', '#2563EB')
+        self.red_player = GamePlayer('red', '#DC2626')
+        self.player_id = Game.RedPlayer
+        self.states = []
+        self.random = np.random.default_rng(2)  # type: Generator
+        self.rounds = 0
+        self.map_owners, self.map_troops = self.get_map()
 
     @staticmethod
     def copy_of(other_game: 'Game') -> 'Game':
@@ -89,6 +89,9 @@ class Game:
     def get_max_rounds(self) -> int:
         return 500
 
+    def is_red_simulated(self) -> bool:
+        return True
+
     def has_ended(self) -> bool:
         return self.rounds >= self.get_max_rounds() \
                or self.get_tile_count(Game.BluePlayer) == 0 \
@@ -105,24 +108,6 @@ class Game:
             return Game.RedPlayer
 
         return Game.NaturePlayer
-
-    def reset_game(self, create_game_map: bool = True) -> None:
-        from state_parser import StateParser
-        from game_map import GameMap
-
-        self.state_parser = StateParser()
-        self.state_parser.game = self
-        self.game_map = GameMap() if create_game_map else self.game_map
-        self.game_map.game = self
-        self.game_map.state_parser = self.state_parser
-        self.nature_player = GamePlayer('nature', '#D4D4D8')
-        self.blue_player = GamePlayer('blue', '#2563EB')
-        self.red_player = GamePlayer('red', '#DC2626')
-        self.player_id = Game.RedPlayer
-        self.states = []
-        self.random = np.random.default_rng(2)  # type: Generator
-        self.rounds = 0
-        self.map_owners, self.map_troops = self.get_map()
 
     def get_player(self, player_id: int) -> GamePlayer:
         if player_id == Game.BluePlayer:
@@ -344,3 +329,21 @@ class Game:
         }
 
         return lookup[tile]
+
+    def __str__(self):
+        blue_tiles = self.get_tile_count(Game.BluePlayer)
+        red_tiles = self.get_tile_count(Game.RedPlayer)
+        blue_troops = self.get_troop_count(Game.BluePlayer)
+        red_troops = self.get_troop_count(Game.RedPlayer)
+        fitness = self.get_fitness()
+        winner = self.get_winner()
+
+        return f'Rounds: {self.rounds:>4}' \
+               f'{"":2}' \
+               f'Tiles: {blue_tiles:>2} / {red_tiles:<2}' \
+               f'{"":2}' \
+               f'Troops: {blue_troops:>3} / {red_troops:>3}' \
+               f'{"":2}' \
+               f'Fitness: {fitness:>8.1f}' \
+               f'{"":2}' \
+               f'Winner: {winner:>4}'

@@ -5,7 +5,6 @@ import re
 from argparse import Namespace
 from multiprocessing import Pool, Lock, Manager, Value
 from multiprocessing.queues import Queue
-from operator import attrgetter
 from typing import Dict, Tuple, List
 
 from neat import Checkpointer, Population, StdOutReporter, StatisticsReporter, DefaultGenome, Config
@@ -13,7 +12,7 @@ from neat.nn import FeedForwardNetwork
 
 from game import Game
 from game_map import GameMap
-from game_presets import ConquerEasyEnemyFastGame, ConquerHardEnemyFastGame, ExpandAloneFastGame
+from game_presets import BlueBeatRedEasy, BlueBeatRedHard, BlueExpandAlone, BlueAgainstRed
 from game_result import GameResult
 
 
@@ -27,8 +26,8 @@ def print_signature(title):
     print()
 
 
-def parse_args() -> Namespace:
-    parser = argparse.ArgumentParser(description='Runs NEAT algorithm.')
+def parse_args(description) -> Namespace:
+    parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
         '-p',
@@ -49,11 +48,13 @@ def parse_args() -> Namespace:
 
 def game_setup(preset: int) -> Game:
     if preset == 1:
-        return ConquerEasyEnemyFastGame()
+        return BlueBeatRedEasy()
     elif preset == 2:
-        return ConquerHardEnemyFastGame()
+        return BlueBeatRedHard()
     elif preset == 3:
-        return ExpandAloneFastGame()
+        return BlueExpandAlone()
+    elif preset == 4:
+        return BlueAgainstRed()
     else:
         return Game()
 
@@ -174,13 +175,15 @@ def play_game(genome: DefaultGenome, config: Config, game: Game, render: bool, g
             break
 
         game.player_id = Game.RedPlayer
-        # player_move = play_simulated(game)
 
-        # if render:
-        #     game.game_map.render(player_move=player_move)
-        #
-        # if game.has_ended():
-        #     break
+        if game.is_red_simulated():
+            player_move = play_simulated(game)
+
+            if render:
+                game.game_map.save(player_move=player_move)
+
+            if game.has_ended():
+                break
 
         game.increase_round()
 

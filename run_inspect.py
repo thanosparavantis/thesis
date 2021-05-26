@@ -9,7 +9,7 @@ from shared import print_signature, pop_setup, play_game, game_setup, get_folder
 def main():
     print_signature("Inspection Script")
 
-    args = parse_args()
+    args = parse_args("Inspect neural networks through generations and save game plays.")
 
     config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 

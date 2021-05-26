@@ -13,7 +13,7 @@ from shared import get_folder_contents, print_signature, parse_args
 def main():
     print_signature("Training Statistics")
 
-    args = parse_args()
+    args = parse_args("Plot fitness, tiles, troops, production, attacks, transports, rounds and winners through generations.")
 
     preset = args.preset
 

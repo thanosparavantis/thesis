@@ -6,7 +6,7 @@ from shared import pop_setup, print_signature, evaluate_fitness, parse_args
 def main():
     print_signature("Evolution Script")
 
-    args = parse_args()
+    args = parse_args("Evolves neural networks through generations with the NEAT algorithm.")
 
     config = Config(DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation, './config')
 
