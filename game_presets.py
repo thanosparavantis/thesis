@@ -132,9 +132,7 @@ class BlueExpandAlone(Game):
         game_won_time = ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) * 30) if self.get_winner() == Game.BluePlayer else 0
         my_tiles_gained = ((nature_start_tiles - nature_tiles) / nature_start_tiles) * 50
 
-        return sum([
-            game_won, game_won_time, my_tiles_gained
-        ])
+        return sum([game_won, game_won_time, my_tiles_gained])
 
     def is_red_simulated(self) -> bool:
         return False
@@ -152,16 +150,15 @@ class BlueExpandAlone(Game):
 
 
 class BlueAgainstRed(Game):
+    def get_max_rounds(self) -> int:
+        return 5000
+
     def get_fitness(self) -> float:
         enemy_tiles = self.get_tile_count(Game.RedPlayer)
         enemy_troops = self.get_troop_count(Game.RedPlayer)
 
-        game_won = 20 if self.get_winner() == Game.BluePlayer else 0
-        game_won_time = ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) * 30) if self.get_winner() == Game.BluePlayer else 0
-        enemy_tiles_lost = 30 - ((enemy_tiles / Game.MapSize) * 30)
-        enemy_troops_lost = 20 - ((enemy_troops / (Game.MapSize * Game.TileTroopMax)) * 20)
+        game_won_time = ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) * 50) if self.get_winner() == Game.BluePlayer else 0
+        enemy_tiles_lost = (((Game.MapSize - enemy_tiles) / Game.MapSize) * 30)
+        enemy_troops_lost = (((Game.MapSize * Game.TileTroopMax - enemy_troops) / (Game.MapSize * Game.TileTroopMax)) * 20)
 
-        return sum([
-            game_won, game_won_time,
-            enemy_tiles_lost, enemy_troops_lost
-        ])
+        return sum([game_won_time, enemy_tiles_lost, enemy_troops_lost])

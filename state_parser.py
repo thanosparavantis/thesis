@@ -132,9 +132,27 @@ class StateParser:
         return player_move
 
     def simulate_move(self) -> Dict:
-        moves = self.get_next_moves()
+        from game import Game
 
-        return self.game.random.choice(moves)
+        moves = self.get_next_moves()
+        production_moves = list(filter(lambda move: move['move_type'] == Game.ProductionMove, moves))
+        attack_moves = list(filter(lambda move: move['move_type'] == Game.AttackMove, moves))
+        transport_moves = list(filter(lambda move: move['move_type'] == Game.TransportMove, moves))
+
+        player_id = self.game.player_id
+        enemy_id = Game.RedPlayer if self.game.player_id == Game.BluePlayer else Game.BluePlayer
+
+        my_tiles = self.game.get_tile_count(player_id)
+        my_troops = self.game.get_troop_count(player_id)
+        enemy_tiles = self.game.get_tile_count(enemy_id)
+        enemy_troops = self.game.get_troop_count(enemy_id)
+
+        if (my_troops < Game.TileTroopMax or my_troops < enemy_troops) and len(production_moves) > 0:
+            return self.game.random.choice(production_moves)
+        elif my_tiles < enemy_tiles and len(attack_moves) > 0:
+            return self.game.random.choice(attack_moves)
+        else:
+            return self.game.random.choice(moves)
 
     def decode_state(self, output: list) -> Dict:
         from game import Game
