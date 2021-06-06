@@ -3,7 +3,6 @@ import json
 from neat import Config, Checkpointer, DefaultGenome, DefaultReproduction, DefaultSpeciesSet, DefaultStagnation
 
 from game import Game
-from game_map import GameMap
 from game_result import GameResult
 from shared import print_signature, play_game
 

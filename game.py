@@ -19,7 +19,7 @@ class Game:
     ProductionMove = 0
     AttackMove = 1
     TransportMove = 2
-    MaxRounds = 5000
+    MaxRounds = 500
 
     def __init__(self):
         self.state_parser = None
@@ -80,24 +80,18 @@ class Game:
         ])
 
     def get_fitness(self) -> Tuple[float, float]:
-        time_reward = (self.rounds / Game.MaxRounds) * 25
-        time_penalty = (abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) * 25
+        delay_reward = ((self.rounds / Game.MaxRounds) ** 2) * 20
+        time_reward = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) ** 2) * 20
+        blue_won = self.get_winner() == Game.BluePlayer
+        red_won = self.get_winner() == Game.RedPlayer
 
         blue_tiles = self.get_tile_count(Game.BluePlayer)
-        blue_troops = self.get_troop_count(Game.BluePlayer)
-        blue_tile_prog = (blue_tiles / Game.MapSize) * 30
-        blue_troop_prog = (blue_troops / (Game.MapSize * Game.TileTroopMax)) * 20
-        blue_won = 25 if self.get_winner() == Game.BluePlayer else 0
-        blue_time = time_penalty if self.get_winner() == Game.BluePlayer else time_reward
-        blue_fit = sum([blue_tile_prog, blue_troop_prog, blue_won, blue_time])
+        blue_tile_comp = ((blue_tiles / Game.MapSize) ** 2) * 100
+        blue_time_comp = time_reward if blue_won else delay_reward
 
         red_tiles = self.get_tile_count(Game.RedPlayer)
-        red_troops = self.get_troop_count(Game.RedPlayer)
-        red_tile_prog = (red_tiles / Game.MapSize) * 50
-        red_troop_prog = (red_troops / (Game.MapSize * Game.TileTroopMax)) * 20
-        red_won = 25 if self.get_winner() == Game.RedPlayer else 0
-        red_time = time_penalty if self.get_winner() == Game.RedPlayer else time_reward
-        red_fit = sum([red_tile_prog, red_troop_prog, red_won, red_time])
+        red_tile_comp = ((red_tiles / Game.MapSize) ** 2) * 100
+        red_time_comp = time_reward if red_won else delay_reward
 
         return blue_fit, red_fit
 
