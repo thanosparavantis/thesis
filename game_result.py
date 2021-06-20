@@ -1,14 +1,9 @@
-import inspect
-
 from neat import DefaultGenome
-from pushbullet import Pushbullet
 
 from game import Game
 
 
 class GameResult:
-    pb = Pushbullet(api_key='o.Ni4QO9yfo4vKFNeSrlNMFxYfdsiB5CaP')
-
     def __init__(self, genome: DefaultGenome = None, game: Game = None, game_json: dict = None):
         if game_json:
             self.genome_key = game_json['genome_key']
@@ -48,19 +43,6 @@ class GameResult:
                 self.winner = 'Red'
             else:
                 self.winner = 'Tie'
-
-    def notify_pushbullet(self, preset: int, generation: int) -> None:
-        self.pb.push_note(
-            title=f'Preset #{preset}',
-            body=inspect.cleandoc(f"""
-                Generation: {generation}
-                Genome {self.genome_key}
-                Fitness: {self.fitness:>.4f}
-                Tiles: {self.blue_tiles} / {self.red_tiles}
-                Troops: {self.blue_troops} / {self.red_troops}
-                Rounds: {self.rounds}
-                Winner: {self.winner}
-            """))
 
     def __str__(self):
         return f'Genome: {self.genome_key:>4}' \
