@@ -33,6 +33,7 @@ class Game:
         self.rounds = None
         self.states = None
         self.random = None  # type: Generator
+        self.strategy = None
         self.reset_game()
 
     def reset_game(self, create_game_map: bool = True) -> None:
@@ -52,6 +53,7 @@ class Game:
         self.random = np.random.default_rng(2)  # type: Generator
         self.rounds = 0
         self.map_owners, self.map_troops = self.get_map()
+        self.strategy = Game.ProductionMove
 
     @staticmethod
     def copy_of(other_game: 'Game') -> 'Game':
