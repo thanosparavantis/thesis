@@ -80,18 +80,14 @@ class Game:
         ])
 
     def get_fitness(self) -> Tuple[float, float]:
-        delay_reward = ((self.rounds / Game.MaxRounds) ** 2) * 20
-        time_reward = ((abs(self.rounds - Game.MaxRounds) / Game.MaxRounds) ** 2) * 20
-        blue_won = self.get_winner() == Game.BluePlayer
-        red_won = self.get_winner() == Game.RedPlayer
+        blue_fit = 0.0
+        red_fit = 0.0
 
-        blue_tiles = self.get_tile_count(Game.BluePlayer)
-        blue_tile_comp = ((blue_tiles / Game.MapSize) ** 2) * 100
-        blue_time_comp = time_reward if blue_won else delay_reward
+        if len(self.blue_player.per_move_fitness) > 0:
+            blue_fit = sum(self.blue_player.per_move_fitness) / len(self.blue_player.per_move_fitness)
 
-        red_tiles = self.get_tile_count(Game.RedPlayer)
-        red_tile_comp = ((red_tiles / Game.MapSize) ** 2) * 100
-        red_time_comp = time_reward if red_won else delay_reward
+        if len(self.red_player.per_move_fitness) > 0:
+            red_fit = sum(self.red_player.per_move_fitness) / len(self.red_player.per_move_fitness)
 
         return blue_fit, red_fit
 
