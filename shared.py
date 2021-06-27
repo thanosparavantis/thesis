@@ -207,6 +207,10 @@ def play_simulated(game: Game) -> Dict:
 
 
 def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
+    player_id = game.player_id
+    player = game.get_player(player_id)
+    enemy_id = Game.BluePlayer if player_id == Game.RedPlayer else Game.RedPlayer
+
     output = network.activate(game.state_parser.encode_state())
     player_move = game.state_parser.decode_state(output)
 
@@ -215,12 +219,31 @@ def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
     target_tile = player_move['target_tile']
     troops = player_move['troops']
 
+    prev_my_tiles = game.get_tile_count(player_id)
+    prev_my_troops = game.get_troop_count(player_id)
+    prev_enemy_tiles = game.get_tile_count(enemy_id)
+    prev_enemy_troops = game.get_troop_count(enemy_id)
+
     if move_type == Game.ProductionMove:
         game.production_move(source_tile)
     elif move_type == Game.AttackMove:
         game.attack_move(source_tile, target_tile, troops)
     elif move_type == Game.TransportMove:
         game.transport_move(source_tile, target_tile, troops)
+
+    after_my_tiles = game.get_tile_count(player_id)
+    after_my_troops = game.get_troop_count(player_id)
+    after_enemy_tiles = game.get_tile_count(enemy_id)
+    after_enemy_troops = game.get_troop_count(enemy_id)
+
+    comp_my_tiles = after_my_tiles - prev_my_tiles
+    comp_my_troops = (after_my_troops - prev_my_troops) / Game.TileTroopMax
+    comp_enemy_tiles = prev_enemy_tiles - after_enemy_tiles
+    comp_enemy_troops = (prev_enemy_troops - after_enemy_troops) / Game.TileTroopMax
+
+    move_fitness = sum([comp_my_tiles, comp_my_troops, comp_enemy_tiles, comp_enemy_troops]) / 4
+
+    player.per_move_fitness.append(move_fitness)
 
     game.save_state()
     return player_move

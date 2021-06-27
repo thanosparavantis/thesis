@@ -7,7 +7,7 @@
 
 [DefaultStagnation]
     species_fitness_func                = mean
-    max_stagnation                      = 15
+    max_stagnation                      = 1000
     species_elitism                     = 0
 
 [DefaultReproduction]
@@ -31,7 +31,7 @@
     enabled_mutate_rate                 = 0.1
 
     feed_forward                        = True
-    initial_connection                  = full
+    initial_connection                  = full_nodirect
 
     node_add_prob                       = 0.3
     node_delete_prob                    = 0.3

@@ -65,7 +65,7 @@ class GameMap:
                f'{"":5}' \
                f'Round: {rounds}' \
                f'{"":>5}' \
-               f'Fitness: {fitness:>6.1f}'
+               f'Fitness: {fitness:>6.6f}'
 
     def render_tile(self, tile: Tuple[int, int], poly_xy: Tuple[float, float], encoding_value: float, player_move: Dict) -> None:
         if player_move is not None and player_move['source_tile'] != tile and player_move['target_tile'] != tile:

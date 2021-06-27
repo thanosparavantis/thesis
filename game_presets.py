@@ -41,7 +41,8 @@ class BlueBeatRedEasy(Game):
         enemy_troops = self.get_troop_count(Game.RedPlayer)
         blue_won = self.get_winner() == Game.BluePlayer
 
-        game_won_time = (((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
+        game_won_time = (
+                ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
         enemy_tiles_lost = (((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) ** 2) * 30
         enemy_troops_lost = (((enemy_start_troops - enemy_troops) / enemy_start_troops) ** 2) * 20
 
@@ -82,7 +83,8 @@ class BlueBeatRedHard(Game):
         enemy_troops = self.get_troop_count(Game.RedPlayer)
         blue_won = self.get_winner() == Game.BluePlayer
 
-        game_won_time = (((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
+        game_won_time = (
+                ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
         enemy_tiles_lost = (((enemy_start_tiles - enemy_tiles) / enemy_start_tiles) ** 2) * 30
         enemy_troops_lost = (((enemy_start_troops - enemy_troops) / enemy_start_troops) ** 2) * 20
 
@@ -125,7 +127,8 @@ class BlueExpandAlone(Game):
         nature_tiles = self.get_tile_count(Game.NaturePlayer)
         blue_won = self.get_winner() == Game.BluePlayer
 
-        game_won_time = (((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
+        game_won_time = (
+                    ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
         my_tiles_gained = (((nature_start_tiles - nature_tiles) / nature_start_tiles) ** 2) * 50
 
         return sum([game_won_time, my_tiles_gained])
@@ -147,12 +150,12 @@ class BlueExpandAlone(Game):
 
 class BlueAgainstRed(Game):
     def get_max_rounds(self) -> int:
-        return 5000
+        return 500
 
     def get_fitness(self) -> float:
-        blue_won = self.get_winner() == Game.BluePlayer
+        player = self.get_player(Game.BluePlayer)
 
-        game_won_time = (((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
-        my_tiles_gained = ((self.get_tile_count(Game.BluePlayer) / Game.TileTroopMax) ** 2) * 50
-
-        return sum([game_won_time, my_tiles_gained])
+        if len(player.per_move_fitness) > 0:
+            return sum(player.per_move_fitness) / len(player.per_move_fitness)
+        else:
+            return 0.0
