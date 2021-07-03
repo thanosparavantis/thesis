@@ -65,7 +65,8 @@ class StateParser:
 
         return troops
 
-    def create_move(self, move_type: int, source_tile: Tuple[int, int], target_tile: Tuple[int, int], troops: int, guided: bool) -> Dict:
+    def create_move(self, move_type: int, source_tile: Tuple[int, int], target_tile: Tuple[int, int], troops: int,
+                    guided: bool) -> Dict:
         return {
             'move_type': move_type,
             'source_tile': source_tile,
@@ -127,6 +128,7 @@ class StateParser:
         player_move['source_tile'] = best_move['source_tile']
         player_move['target_tile'] = best_move['target_tile']
         player_move['troops'] = best_move['troops']
+        player_move['guided'] = True
 
         return player_move
 

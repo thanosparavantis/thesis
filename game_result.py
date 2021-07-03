@@ -19,6 +19,8 @@ class GameResult:
             self.red_attack_moves = game_json['red_attack_moves']
             self.blue_transport_moves = game_json['blue_transport_moves']
             self.red_transport_moves = game_json['red_transport_moves']
+            self.blue_guided_moves = game_json['blue_guided_moves']
+            self.red_guided_moves = game_json['red_guided_moves']
             self.blue_fitness = game_json['blue_fitness']
             self.red_fitness = game_json['red_fitness']
             self.winner = game_json['winner']
@@ -36,6 +38,8 @@ class GameResult:
             self.red_attack_moves = game.red_player.attack_moves
             self.blue_transport_moves = game.blue_player.transport_moves
             self.red_transport_moves = game.red_player.transport_moves
+            self.blue_guided_moves = game.blue_player.guided_moves
+            self.red_guided_moves = game.red_player.guided_moves
             self.blue_fitness, self.red_fitness = game.get_fitness()
 
             winner_id = game.get_winner()
@@ -48,14 +52,14 @@ class GameResult:
                 self.winner = 'Tie'
 
     def __str__(self):
-        return f'Genome: {self.blue_key:>4} / {self.red_key:<4}' \
-               f'{"":2}' \
-               f'Rounds: {self.rounds:>4}' \
-               f'{"":2}' \
-               f'Tiles: {self.blue_tiles:>2} / {self.red_tiles:<2}' \
-               f'{"":2}' \
+        return f'Genome: {self.blue_key:>4} / {self.red_key:>4}' \
+               f'{"":4}' \
+               f'Rounds: {self.rounds:>3}' \
+               f'{"":4}' \
+               f'Tiles: {self.blue_tiles:>2} / {self.red_tiles:>2}' \
+               f'{"":4}' \
                f'Troops: {self.blue_troops:>3} / {self.red_troops:>3}' \
-               f'{"":2}' \
-               f'Fitness: {self.blue_fitness:>8.4f} / {self.red_fitness:<8.4f}' \
-               f'{"":2}' \
+               f'{"":4}' \
+               f'Fitness: {self.blue_fitness:>7.3f} / {self.red_fitness:>7.3f}' \
+               f'{"":4}' \
                f'Winner: {self.winner:>4}'

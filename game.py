@@ -80,14 +80,8 @@ class Game:
         ])
 
     def get_fitness(self) -> Tuple[float, float]:
-        blue_fit = 0.0
-        red_fit = 0.0
-
-        if len(self.blue_player.per_move_fitness) > 0:
-            blue_fit = sum(self.blue_player.per_move_fitness) / len(self.blue_player.per_move_fitness)
-
-        if len(self.red_player.per_move_fitness) > 0:
-            red_fit = sum(self.red_player.per_move_fitness) / len(self.red_player.per_move_fitness)
+        blue_fit = sum(self.blue_player.per_move_fitness)
+        red_fit = sum(self.red_player.per_move_fitness)
 
         return blue_fit, red_fit
 

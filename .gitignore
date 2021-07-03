@@ -1,4 +1,5 @@
 venv/
+venvpc/
 .idea/
 __pycache__/
 logs/
