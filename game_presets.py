@@ -123,15 +123,8 @@ class BlueExpandAlone(Game):
         return 5000
 
     def get_fitness(self) -> float:
-        nature_start_tiles = 36
-        nature_tiles = self.get_tile_count(Game.NaturePlayer)
-        blue_won = self.get_winner() == Game.BluePlayer
-
-        game_won_time = (
-                    ((abs(self.rounds - self.get_max_rounds()) / self.get_max_rounds()) ** 2) * 50) if blue_won else 0
-        my_tiles_gained = (((nature_start_tiles - nature_tiles) / nature_start_tiles) ** 2) * 50
-
-        return sum([game_won_time, my_tiles_gained])
+        blue_fit = sum(self.blue_player.per_move_fitness)
+        return blue_fit
 
     def is_red_simulated(self) -> bool:
         return False

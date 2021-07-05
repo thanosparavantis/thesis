@@ -98,7 +98,7 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
 
 
 def evaluate_fitness(preset: int, generation: int, genomes: List[Tuple[int, DefaultGenome]], config: Config) -> None:
-    pool = Pool(os.cpu_count())
+    pool = Pool(max(os.cpu_count() - 1, 1))
     manager = Manager()
     lock = manager.Lock()
     queue = manager.Queue()
@@ -206,6 +206,118 @@ def play_simulated(game: Game) -> Dict:
     return player_move
 
 
+def get_fitness(comb):
+    payoff = [
+        (-1, 0, 0, 0),
+        (0, 0, 0, 0),
+        (0, 1, 0, 0),
+        (1, 0, 0, 0),
+        (-1, -1, 0, -1),
+        (-1, -2, 0, -2),
+        (-1, -3, 0, -3),
+        (-1, -4, 0, -4),
+        (-1, -5, 0, -5),
+        (-1, -6, 0, -6),
+        (-1, -7, 0, -7),
+        (-1, -8, 0, -8),
+        (-1, -9, 0, -9),
+        (-1, -10, 0, -10),
+        (-1, -11, 0, -11),
+        (-1, -12, 0, -12),
+        (-1, -13, 0, -13),
+        (-1, -14, 0, -14),
+        (-1, -15, 0, -15),
+        (-1, -16, 0, -16),
+        (-1, -17, 0, -17),
+        (-1, -18, 0, -18),
+        (-1, -19, 0, -19),
+        (0, -1, 0, -1),
+        (0, -2, 0, -2),
+        (0, -3, 0, -3),
+        (0, -4, 0, -4),
+        (0, -5, 0, -5),
+        (0, -6, 0, -6),
+        (0, -7, 0, -7),
+        (0, -8, 0, -8),
+        (0, -9, 0, -9),
+        (0, -10, 0, -10),
+        (0, -11, 0, -11),
+        (0, -12, 0, -12),
+        (0, -13, 0, -13),
+        (0, -14, 0, -14),
+        (0, -15, 0, -15),
+        (0, -16, 0, -16),
+        (0, -17, 0, -17),
+        (0, -18, 0, -18),
+        (0, -19, 0, -19),
+        (0, -1, -1, -1),
+        (0, -2, -1, -2),
+        (0, -3, -1, -3),
+        (0, -4, -1, -4),
+        (0, -5, -1, -5),
+        (0, -6, -1, -6),
+        (0, -7, -1, -7),
+        (0, -8, -1, -8),
+        (0, -9, -1, -9),
+        (0, -10, -1, -10),
+        (0, -11, -1, -11),
+        (0, -12, -1, -12),
+        (0, -13, -1, -13),
+        (0, -14, -1, -14),
+        (0, -15, -1, -15),
+        (0, -16, -1, -16),
+        (0, -17, -1, -17),
+        (0, -18, -1, -18),
+        (0, -19, -1, -19),
+        (-1, -1, -1, -1),
+        (-1, -2, -1, -2),
+        (-1, -3, -1, -3),
+        (-1, -4, -1, -4),
+        (-1, -5, -1, -5),
+        (-1, -6, -1, -6),
+        (-1, -7, -1, -7),
+        (-1, -8, -1, -8),
+        (-1, -9, -1, -9),
+        (-1, -10, -1, -10),
+        (-1, -11, -1, -11),
+        (-1, -12, -1, -12),
+        (-1, -13, -1, -13),
+        (-1, -14, -1, -14),
+        (-1, -15, -1, -15),
+        (-1, -16, -1, -16),
+        (-1, -17, -1, -17),
+        (-1, -18, -1, -18),
+        (-1, -19, -1, -19),
+        (-1, -20, -1, -20),
+        (1, -1, -1, -1),
+        (1, -2, -1, -2),
+        (1, -3, -1, -3),
+        (1, -4, -1, -4),
+        (1, -5, -1, -5),
+        (1, -6, -1, -6),
+        (1, -7, -1, -7),
+        (1, -8, -1, -8),
+        (1, -9, -1, -9),
+        (1, -10, -1, -10),
+        (1, -11, -1, -11),
+        (1, -12, -1, -12),
+        (1, -13, -1, -13),
+        (1, -14, -1, -14),
+        (1, -15, -1, -15),
+        (1, -16, -1, -16),
+        (1, -17, -1, -17),
+        (1, -18, -1, -18),
+        (1, -19, -1, -19),
+    ]
+
+    payoff_dict = {}
+
+    for idx, key in enumerate(payoff):
+        payoff_dict[key] = idx + 1
+
+    return payoff_dict[comb] / len(payoff_dict)
+
+
 def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
     player_id = game.player_id
     player = game.get_player(player_id)
@@ -218,6 +330,7 @@ def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
     source_tile = player_move['source_tile']
     target_tile = player_move['target_tile']
     troops = player_move['troops']
+    guided = player_move['guided']
 
     prev_my_tiles = game.get_tile_count(player_id)
     prev_my_troops = game.get_troop_count(player_id)
@@ -237,13 +350,16 @@ def play_move(network: FeedForwardNetwork, game: Game) -> Dict:
     after_enemy_troops = game.get_troop_count(enemy_id)
 
     comp_my_tiles = after_my_tiles - prev_my_tiles
-    comp_my_troops = (after_my_troops - prev_my_troops) / Game.TileTroopMax
-    comp_enemy_tiles = prev_enemy_tiles - after_enemy_tiles
-    comp_enemy_troops = (prev_enemy_troops - after_enemy_troops) / Game.TileTroopMax
+    comp_my_troops = after_my_troops - prev_my_troops
+    comp_enemy_tiles = after_enemy_tiles - prev_enemy_tiles
+    comp_enemy_troops = after_enemy_troops - prev_enemy_troops
 
-    move_fitness = sum([comp_my_tiles, comp_my_troops, comp_enemy_tiles, comp_enemy_troops]) / 4
+    move_fitness = get_fitness((comp_my_tiles, comp_my_troops, comp_enemy_tiles, comp_enemy_troops))
 
     player.per_move_fitness.append(move_fitness)
+
+    if guided:
+        player.guided_moves += 1
 
     game.save_state()
     return player_move

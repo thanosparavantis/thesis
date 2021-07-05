@@ -5,4 +5,5 @@ class GamePlayer:
         self.production_moves = 0
         self.attack_moves = 0
         self.transport_moves = 0
+        self.guided_moves = 0
         self.per_move_fitness = []
