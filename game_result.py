@@ -54,7 +54,7 @@ class GameResult:
     def __str__(self):
         return f'Genome: {self.blue_key:>4} / {self.red_key:>4}' \
                f'{"":4}' \
-               f'Rounds: {self.rounds:>3}' \
+               f'Rounds: {self.rounds:>4}' \
                f'{"":4}' \
                f'Tiles: {self.blue_tiles:>2} / {self.red_tiles:>2}' \
                f'{"":4}' \
