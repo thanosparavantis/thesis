@@ -18,8 +18,8 @@ class GameResult:
             self.red_attack_moves = game_json['red_attack_moves']
             self.blue_transport_moves = game_json['blue_transport_moves']
             self.red_transport_moves = game_json['red_transport_moves']
-            self.blue_guided_moves = game_json['blue_guided_moves']
-            self.red_guided_moves = game_json['red_guided_moves']
+            self.blue_guided_moves = game_json['blue_guided_moves'] if 'blue_guided_moves' in game_json else 0
+            self.red_guided_moves = game_json['red_guided_moves'] if 'red_guided_moves' in game_json else 0
             self.fitness = game_json['fitness']
             self.winner = game_json['winner']
         else:

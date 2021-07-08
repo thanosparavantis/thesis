@@ -41,7 +41,7 @@ def parse_args(description) -> Namespace:
 
     args = parser.parse_args()
 
-    print(f'Selected game preset> {args.preset}')
+    print(f'Selected game preset: {args.preset}')
 
     return args
 
@@ -74,7 +74,7 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
     if ckp_number:
         ckp_file = f'{folder}/{filename}'
         pop = Checkpointer.restore_checkpoint(ckp_file)
-        print(f'Loaded predefined checkpoint> {ckp_file}')
+        print(f'Loaded predefined checkpoint: {ckp_file}')
     else:
 
         if not os.path.isdir(folder):
@@ -85,7 +85,7 @@ def pop_setup(neat_config: Config, preset: int, ckp_number: int = None) -> Popul
         if len(ckp_list) > 0:
             ckp_file = f'{folder}/{ckp_list[-1]}'
             pop = Checkpointer.restore_checkpoint(ckp_file)
-            print(f'Loaded checkpoint> {ckp_file}')
+            print(f'Loaded checkpoint: {ckp_file}')
         else:
             print(f'Creating new population')
             pop = Population(neat_config)
