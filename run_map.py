@@ -1,4 +1,3 @@
-from game_presets import BlueExpandAlone, BlueBeatRedEasy, BlueBeatRedHard, BlueAgainstRed
 from shared import print_signature, parse_args, game_setup
 
 

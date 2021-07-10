@@ -38,8 +38,8 @@ def main():
     genome_key = input('Enter genome key: ')
 
     genome = population.population[int(genome_key)]
-    game = game_setup(preset)
 
+    game = game_setup(preset)
     play_game(genome, config, game, True)
 
     print()
