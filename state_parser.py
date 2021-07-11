@@ -136,18 +136,21 @@ class StateParser:
 
         moves = self.get_next_moves()
         production_moves = list(filter(lambda move: move['move_type'] == Game.ProductionMove, moves))
-        attack_moves = list(filter(lambda move: move['move_type'] == Game.AttackMove and self.game.get_tile_troops(move['source_tile']) > move['troops'], moves))
+        attack_moves = list(filter(lambda move: move['move_type'] == Game.AttackMove, moves))
+        transport_moves = list(filter(lambda move: move['move_type'] == Game.TransportMove, moves))
 
-        if self.game.rounds % 10 == 0:
-            if self.game.strategy == Game.ProductionMove:
-                self.game.strategy = Game.AttackMove
-            else:
-                self.game.strategy = Game.ProductionMove
+        player_id = self.game.player_id
+        enemy_id = Game.RedPlayer if self.game.player_id == Game.BluePlayer else Game.BluePlayer
 
-        if self.game.strategy == Game.AttackMove and len(attack_moves) > 0:
-            return self.game.random.choice(attack_moves)
-        elif self.game.strategy == Game.ProductionMove and len(production_moves) > 0:
+        my_tiles = self.game.get_tile_count(player_id)
+        my_troops = self.game.get_troop_count(player_id)
+        enemy_tiles = self.game.get_tile_count(enemy_id)
+        enemy_troops = self.game.get_troop_count(enemy_id)
+
+        if (my_troops < Game.TileTroopMax or my_troops < enemy_troops) and len(production_moves) > 0:
             return self.game.random.choice(production_moves)
+        elif my_tiles < enemy_tiles and len(attack_moves) > 0:
+            return self.game.random.choice(attack_moves)
         else:
             return self.game.random.choice(moves)
 
