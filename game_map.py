@@ -62,11 +62,11 @@ class GameMap:
         rounds = self.game.rounds
         blue_fit, red_fit = self.game.get_fitness()
 
-        return f'Genome: {self.blue_key:>4} / {self.red_key:<4}' \
+        return f'Genome: {self.blue_key:>4} / {self.red_key:>4}' \
                f'{"":5}' \
                f'Round: {rounds}' \
                f'{"":>5}' \
-               f'Fitness: {blue_fit:>6.4f} / {red_fit:<6.4f}'
+               f'Fitness: {blue_fit:>6.3f} / {red_fit:>6.3f}'
 
     def render_tile(self, tile: Tuple[int, int], poly_xy: Tuple[float, float], encoding_value: float, player_move: Dict) -> None:
         if player_move is not None and player_move['source_tile'] != tile and player_move['target_tile'] != tile:
