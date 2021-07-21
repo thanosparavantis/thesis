@@ -161,18 +161,15 @@ class BlueBeatRedHard(Game):
 
 class BlueAgainstRed(Game):
     def get_max_rounds(self) -> int:
-        return 5000
+        return 500
 
     def get_fitness(self) -> float:
-        enemy_tiles = self.get_tile_count(Game.RedPlayer)
-        enemy_troops = self.get_troop_count(Game.RedPlayer)
+        my_tiles = self.get_tile_count(Game.BluePlayer)
         blue_won = self.get_winner() == Game.BluePlayer
         rounds = self.rounds
         max_rounds = self.get_max_rounds()
-        max_troops = Game.MapSize * Game.TileTroopMax
 
         game_won_time = ((abs(rounds - max_rounds) / max_rounds) * 50) if blue_won else 0
-        enemy_tiles_lost = (((Game.MapSize - enemy_tiles) / Game.MapSize) * 30)
-        enemy_troops_lost = (((max_troops - enemy_troops) / max_troops) * 20)
+        tiles_gained = (my_tiles / Game.MapSize) * 50
 
-        return sum([game_won_time, enemy_tiles_lost, enemy_troops_lost])
+        return sum([game_won_time, tiles_gained])

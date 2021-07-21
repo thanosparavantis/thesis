@@ -147,10 +147,10 @@ class StateParser:
         enemy_tiles = self.game.get_tile_count(enemy_id)
         enemy_troops = self.game.get_troop_count(enemy_id)
 
-        if (my_troops < Game.TileTroopMax or my_troops < enemy_troops) and len(production_moves) > 0:
-            return self.game.random.choice(production_moves)
-        elif my_tiles < enemy_tiles and len(attack_moves) > 0:
+        if my_tiles < enemy_tiles and len(attack_moves) > 0:
             return self.game.random.choice(attack_moves)
+        elif (my_troops < Game.TileTroopMax or my_troops < enemy_troops) and len(production_moves) > 0:
+            return self.game.random.choice(production_moves)
         else:
             return self.game.random.choice(moves)
 
