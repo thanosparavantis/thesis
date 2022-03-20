@@ -3,3 +3,6 @@ On this project, we study applications of the NEAT algorithm in deterministic an
 
 **Browse through related projects on thanosparavantis.com:**  
 https://www.thanosparavantis.com/projects/thesis
+
+**Read thesis documentation:**  
+https://www.thanosparavantis.com/projects/thesis/documentation
