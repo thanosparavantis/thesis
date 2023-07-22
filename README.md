@@ -5,4 +5,4 @@ On this project, we study applications of the NEAT algorithm in deterministic an
 https://www.thanosparavantis.com/projects/thesis
 
 **Read thesis documentation:**  
-https://www.thanosparavantis.com/projects/thesis/documentation
+https://thanos.dev/projects/thesis/documentation
